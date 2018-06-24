@@ -1,2 +1,4 @@
 1. Figure out how to integrate PhantomBot into discord. DONE
-2. Figure out how to read logs from a file in real time from twitch.
+2. Figure out how to read logs from a file in real time from twitch. SOMEWHAT DONE 
+    Got a shell script to post to discord
+3. Figure out how to run a server to read from the text file and run the script to post to discord

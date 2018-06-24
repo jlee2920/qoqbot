@@ -72,8 +72,6 @@ If you're hosting the bot locally you can access the panel here: http://localhos
 If you're running the bot on a server, make sure to open the following ports:
 25000, 25003, and 25004. You can change 'localhost' to your server ip to access the panel.
 
-TODO: Figure out if there is a way to look at the logs and write to a file
-
 There is a database file in PhantomBot and can be converted to a MySQL database
 https://community.phantombot.tv/t/mysql-configuration/73
 
@@ -83,3 +81,6 @@ NOTE:
     we can then attempt to write that message out to the bot to write into discord or manually
     write it to discord.
     - we can tail a file and grep for a specific command
+    - discord follow a RESTful interface
+        https://discordapp.com/developers/docs/resources/channel#create-message
+    
