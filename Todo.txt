@@ -1,0 +1,2 @@
+1. Figure out how to integrate PhantomBot into discord. DONE
+2. Figure out how to read logs from a file in real time from twitch.

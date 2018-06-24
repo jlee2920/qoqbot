@@ -18,10 +18,14 @@ https://community.phantombot.tv/t/macos-setup-guide/63
 Discord Integration:
 https://community.phantombot.tv/t/discord-integration-setup/64
 
+- Note: In order to fully connect PhantomBot into discord, you need to add the bot to the server and
+        grab the token from the new bot created. Then you place this token inside the config file
+        located at /config/botlogin.txt
+
 Connecting with Twitch:
 https://phantombot.tv/oauth/
 
-- Note: Java 8 is required, Java 9 is not 
+- Note: Java 8 is required, Java 9 is NOT SUPPORTED
 
 Writing your own script:
 https://community.phantombot.tv/t/how-to-make-your-own-script/1112
@@ -67,3 +71,5 @@ PhantomBot will launch in 5 seconds.
 If you're hosting the bot locally you can access the panel here: http://localhost:25000/panel
 If you're running the bot on a server, make sure to open the following ports:
 25000, 25003, and 25004. You can change 'localhost' to your server ip to access the panel.
+
+TODO: Figure out if there is a way to look at the logs and write to a file
