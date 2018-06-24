@@ -2,3 +2,8 @@
 2. Figure out how to read logs from a file in real time from twitch. SOMEWHAT DONE 
     Got a shell script to post to discord
 3. Figure out how to run a server to read from the text file and run the script to post to discord
+    Got a shell script to continually poll the log and find the key word "!sr" and it invokes a shell script that makes a cURL call to discord which
+    posts into general
+4. Need to figure out how to parse the line in BASH properly
+    - Also need to look into if there is a way to intercept the API call and get the JSON from there instead of reading a log file
+    - Need to change readlogfile.sh to read the log file location from the command line
