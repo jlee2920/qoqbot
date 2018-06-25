@@ -7,3 +7,9 @@
 4. Need to figure out how to parse the line in BASH properly
     - Also need to look into if there is a way to intercept the API call and get the JSON from there instead of reading a log file
     - Need to change readlogfile.sh to read the log file location from the command line
+
+A wrench in the project
+- I was relying on being able to make a cURL commmand to post to discord the song request but it technically is not
+considered a "chat" in the channel. I confirmed this by making the same request from twitch into discord manually and it worked.
+I also tried looking at the logs for the bot and it also does not recognise the qoqbot's request. Need to investigate an alternative
+to using cURL
