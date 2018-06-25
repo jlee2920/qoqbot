@@ -84,3 +84,13 @@ NOTE:
     - discord follow a RESTful interface
         https://discordapp.com/developers/docs/resources/channel#create-message
     
+
+Thought:
+THIS WOULD HAVE TO BE AFTER WE FIGURE OUT HOW TO PROPERLY ALLOW QOQBOT TO MAKE A REQUEST TO RHYTHMBOT.
+What if we are able to change the source of qoqbot to send a RESTful call to our local server instead of having this local server
+polling and reading from a log file. This would definitely be a more robust solution that wouldn't require the date or a local 
+implementation for the log file. This would also allow us to extend this to an external server that could do the needful that regular
+!sr does in nightbot. This is a difficult thing to measure since these are all specluations and on the premise that we can do a build
+of the new bot which I'm assuming is docker based. If this is docker based, building is very simple; if not, then this might not be 
+realistically possible. -- If this is not possible, we have no choice but to read the log file. This still doesn't solve our issue
+of only allowing regualrs to make requests or the same person making more than a specific number of requests. 
