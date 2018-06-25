@@ -1,13 +1,14 @@
 #!/bin/bash
 
-string="!sr"
+string=";;play"
 
-tail -n 0 -F ~/Documents/PhantomBot-2.4.0.3/logs/chat/24-06-2018.txt | \
+tail -n 0 -F ~/Documents/PhantomBot-2.4.0.3/logs/chat/25-06-2018.txt | \
 while read LINE
 do
 echo "$LINE" | grep -q $string
 if [ $? = 0 ]
 then
-./postToDiscord.sh "$string"
+request=$(echo "$LINE" | grep -o ";;play.*")
+./postToDiscord.sh "$request"
 fi
 done
