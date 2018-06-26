@@ -94,3 +94,13 @@ implementation for the log file. This would also allow us to extend this to an e
 of the new bot which I'm assuming is docker based. If this is docker based, building is very simple; if not, then this might not be 
 realistically possible. -- If this is not possible, we have no choice but to read the log file. This still doesn't solve our issue
 of only allowing regualrs to make requests or the same person making more than a specific number of requests. 
+
+
+NEW DISCOVERY:
+Posting to the discord through cURL does not trigger any API calls for GET or POST in our client. We have discovered that in order
+for the music bot to pick something up, it has to be a post to messages through the client. There are a couple of things we can do.
+1. Be able to POST in our Discord client somehow through the bot - the bot talks directly to the client instead of posting to the
+server and the client pulls.
+2. Be able to take to the music bot directly through an API and trigger it's music capabilites. 
+
+I will dive more indepth into 2.
