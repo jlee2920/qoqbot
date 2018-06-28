@@ -2,21 +2,14 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 )
-
-// The request call to get the a token from Nightbot
-type nightbotTokenReq struct {
-	ClientID     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
-	GrantType    string `json:"grant_type"`
-	RedirectURI  string `json:"redirect_uri"`
-	Code         string `json:"code"`
-}
 
 // Response from token API from Nightbot
 type nightbotTokenResp struct {
@@ -38,44 +31,40 @@ type regularInfo struct {
 }
 
 type regularsResp struct {
-	Total    int `json:"_total"`
-	Status   int `json:"status"`
-	Regulars []regularInfo
+	Total    int           `json:"_total"`
+	Status   int           `json:"status"`
+	Regulars []regularInfo `json:"regulars"`
 }
 
 func main() {
 
 	clientID := "62e4254b14c2d05ce25bf7f384b2276e"
-	redirectURI := "https%3A%2F%2Flocalhost%2F"
-	url := "https://api.nightbot.tv/oauth2/token"
+	redirectURI := "https://localhost/"
+	authURL := "https://api.nightbot.tv/oauth2/token"
 
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter client secret - can be found at https://beta.nightbot.tv/account/applications: ")
 	clientSecret, _ := reader.ReadString('\n')
+	clientSecret = strings.TrimSpace(clientSecret)
 	fmt.Print("Enter code returned from authorizing: ")
 	code, _ := reader.ReadString('\n')
+	code = strings.TrimSpace(code)
 
-	getToken := &nightbotTokenReq{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		GrantType:    "authorization_code",
-		RedirectURI:  redirectURI,
-		Code:         code,
-	}
-
-	jsonValue, err := json.Marshal(getToken)
-	if err != nil {
-		fmt.Printf("Failed to marshal nightbot token request")
-		return
-	}
+	data := url.Values{}
+	data.Set("client_id", clientID)
+	data.Set("client_secret", clientSecret)
+	data.Set("grant_type", "authorization_code")
+	data.Set("redirect_uri", redirectURI)
+	data.Set("code", code)
 
 	// Build the request
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
+	req, err := http.NewRequest("POST", authURL, strings.NewReader(data.Encode()))
 	if err != nil {
 		fmt.Printf("Error building the http POST request: %s", err)
 		return
 	}
 	client := &http.Client{}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	// Run the request
 	resp, err := client.Do(req)
@@ -83,36 +72,32 @@ func main() {
 		fmt.Printf("Error posting to the the tokens endpoint: %s", err)
 		return
 	}
-
 	defer resp.Body.Close()
 
-	// Use json.Decode for reading streams of JSON data
+	body, err := ioutil.ReadAll(resp.Body)
 	tokenResp := &nightbotTokenResp{}
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
-		fmt.Printf("Error parsing the response from the tokens endpoint: %s", err)
-		return
-	}
+	json.Unmarshal(body, tokenResp)
+	resp.Body.Close()
 
 	// Now we need to make an API post call to
-	req, err = http.NewRequest("GET", url, nil)
+	regularsURL := "https://api.nightbot.tv/1/regulars"
+	req, err = http.NewRequest("GET", regularsURL, nil)
 	if err != nil {
 		fmt.Printf("Error building the http GET request: %s", err)
 		return
 	}
 	req.Header.Add("Authorization", "Bearer "+tokenResp.AccessToken)
-	client = &http.Client{}
 
-	resp, err = client.Do(req)
+	regularsResponse, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("Error getting from regulars endpoint: %s", err)
 		return
 	}
+	defer regularsResponse.Body.Close()
+	body, err = ioutil.ReadAll(regularsResponse.Body)
+	regResp := &regularsResp{}
+	json.Unmarshal(body, regResp)
+	regularsResponse.Body.Close()
 
-	regularsResp := &regularsResp{}
-	if err := json.NewDecoder(resp.Body).Decode(&regularsResp); err != nil {
-		fmt.Printf("Error parsing the response from the regulars endpoint: %s", err)
-		return
-	}
-
-	fmt.Printf("Regular count is %d", regularsResp.Total)
+	fmt.Printf("%q\n", regResp.Regulars)
 }
