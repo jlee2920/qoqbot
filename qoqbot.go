@@ -11,8 +11,9 @@ import (
 	"strings"
 )
 
-// Response from token API from Nightbot
+// JSON structure of the response we get back from the Token's API endpoint from NightBot
 type nightbotTokenResp struct {
+	// Structure is as follows: Name_of_variable type json_variable_in_response
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 	TokenType    string `json:"token_type"`
@@ -20,6 +21,7 @@ type nightbotTokenResp struct {
 	Scope        string `json:"scope"`
 }
 
+// JSON structure of the information returned from the regulars list
 type regularInfo struct {
 	ID          string `json:"_id"`
 	CreatedAt   string `json:"createdAt"`
@@ -30,9 +32,11 @@ type regularInfo struct {
 	DisplayName string `json:"displayName"`
 }
 
+// Main JSON structure of the response from the Regular's API endpoint from Nightbot
 type regularsResp struct {
-	Total    int           `json:"_total"`
-	Status   int           `json:"status"`
+	Total  int `json:"_total"`
+	Status int `json:"status"`
+	// This variable takes in the previous JSON structure as it's type
 	Regulars []regularInfo `json:"regulars"`
 }
 
@@ -42,14 +46,21 @@ func main() {
 	redirectURI := "https://localhost/"
 	authURL := "https://api.nightbot.tv/oauth2/token"
 
+	// Get inital secrets to get the list of regulars
+	// Open a reader that looks at the STDIN for input from the user
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter client secret - can be found at https://beta.nightbot.tv/account/applications: ")
+	// clientSecert is the var that is returned from NightBot's application that is needed. We are reading up to a newline character
+	// Then trimming it off.
 	clientSecret, _ := reader.ReadString('\n')
 	clientSecret = strings.TrimSpace(clientSecret)
+	// Same thing we are doing for clientSecret
 	fmt.Print("Enter code returned from authorizing: ")
 	code, _ := reader.ReadString('\n')
 	code = strings.TrimSpace(code)
 
+	// Building x-www-form-urlencoded parameters. We need these parameters in this specific format because that is the only way
+	// to call this API endpoint. This format is basically what you see at the end of a URL
 	data := url.Values{}
 	data.Set("client_id", clientID)
 	data.Set("client_secret", clientSecret)
@@ -58,12 +69,16 @@ func main() {
 	data.Set("code", code)
 
 	// Build the request
+	// We are making a new HTTP POST request to the authentication URL and adding in our parameters we just added and encoded
 	req, err := http.NewRequest("POST", authURL, strings.NewReader(data.Encode()))
 	if err != nil {
 		fmt.Printf("Error building the http POST request: %s", err)
 		return
 	}
+	// We create a new HTTP client to send the request and add the content type header
 	client := &http.Client{}
+	// Content-Type is a header that is the client telling the server what kind of data is expected to be given - required to be
+	// application/x-www-form-urlencoded be NightBot
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	// Run the request
@@ -72,8 +87,13 @@ func main() {
 		fmt.Printf("Error posting to the the tokens endpoint: %s", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //defer is a call that would happen at the end of the program no matter if it exited gracefully or not
 
+	// Grab the response and put it into tokenResp
+	// Since the response from the server is in the type io reader, we need to convert this to a different scheme in order to parse it
+	// properly. To do this, we pass it into ioutil's ReadAll function to get the body of the response out into a byte array.
+	// We then take this byte array, which is in JSON format, and unmarshal is into the body. Unmarshal takes a byte array that was encoded
+	// from a JSON object and populated the JSON struct.
 	body, err := ioutil.ReadAll(resp.Body)
 	tokenResp := &nightbotTokenResp{}
 	json.Unmarshal(body, tokenResp)
