@@ -61,19 +61,23 @@ func main() {
 	// clientSecert is the var that is returned from NightBot's application that is needed. We are reading up to a newline character
 	// Then trimming it off.
 	clientSecret, _ := reader.ReadString('\n')
-	clientSecret = strings.TrimSpace(clientSecret)
+	clientSecret = strings.Replace(clientSecret, "\r\n", "", -1)
+	clientSecret = strings.Replace(clientSecret, "\n", "", -1)
 	// Same thing we are doing for clientSecret
 	fmt.Print("Enter code returned from authorizing: ")
 	code, _ := reader.ReadString('\n')
-	code = strings.TrimSpace(code)
+	code = strings.Replace(code, "\r\n", "", -1)
+	code = strings.Replace(code, "\n", "", -1)
 	// Same thing we are doing for discord token
 	fmt.Print("Enter discord token: ")
 	discordToken, _ := reader.ReadString('\n')
-	discordToken = strings.TrimSpace(discordToken)
+	discordToken = strings.Replace(discordToken, "\r\n", "", -1)
+	discordToken = strings.Replace(discordToken, "\n", "", -1)
 	// Same thing we are doing for discord channel
 	fmt.Print("Enter discord channel: ")
 	discordChannel, _ := reader.ReadString('\n')
-	discordChannel = strings.TrimSpace(discordChannel)
+	discordChannel = strings.Replace(discordChannel, "\r\n", "", -1)
+	discordChannel = strings.Replace(discordChannel, "\n", "", -1)
 
 	// Building x-www-form-urlencoded parameters. We need these parameters in this specific format because that is the only way
 	// to call this API endpoint. This format is basically what you see at the end of a URL
