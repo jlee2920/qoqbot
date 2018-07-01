@@ -14,8 +14,8 @@ full_message=$message1"\"$message\""$message2
 echo $full_message
 
 curl -v \
--H "Authorization: Bot TOKEN" \
+-H "Authorization: NDYyMDE4NjcxNzIwNjYwOTkz.Dhbv6w.CScVc1GMUTGpJOj9Unbm-3oeBYE" \
 -H "User-Agent: myBotThing (http://some.url, v0.1)" \
 -H "Content-Type: application/json" \
 -d "$full_message" \
-https://discordapp.com/api/channels/CHANNELID/messages
+https://discordapp.com/api/channels/460104389139496971/messages

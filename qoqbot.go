@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -9,7 +10,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/hpcloud/tail"
 )
@@ -62,9 +62,13 @@ func main() {
 	code, _ := reader.ReadString('\n')
 	code = strings.TrimSpace(code)
 	// Same thing we are doing for discord token
-	// fmt.Print("Enter discord token: ")
-	// discordToken, _ := reader.ReadString('\n')
-	// discordToken = strings.TrimSpace(code)
+	fmt.Print("Enter discord token: ")
+	discordToken, _ := reader.ReadString('\n')
+	discordToken = strings.TrimSpace(discordToken)
+	// Same thing we are doing for discord channel
+	fmt.Print("Enter discord channel: ")
+	discordChannel, _ := reader.ReadString('\n')
+	discordChannel = strings.TrimSpace(discordChannel)
 
 	// Building x-www-form-urlencoded parameters. We need these parameters in this specific format because that is the only way
 	// to call this API endpoint. This format is basically what you see at the end of a URL
@@ -126,18 +130,59 @@ func main() {
 	json.Unmarshal(body, regResp)
 	regularsResponse.Body.Close()
 
-	fmt.Printf("%q\n", regResp.Regulars)
+	var listOfRegulars []string
+	if len(regResp.Regulars) == 0 {
+		fmt.Printf("Could not find list of regulars, check your code from authorization. Exiting")
+		return
+	}
+	for _, regulars := range regResp.Regulars {
+		listOfRegulars = append(listOfRegulars, regulars.DisplayName)
+		fmt.Printf("Building list of regulars: %q\n", listOfRegulars)
+	}
 	// Now that we have the list of regulars, we must authenticate any !play requests from twitch so that they are, in fact, a regular
 	// We need an infinite loop to continually polling the log file for the !play request
-	delay := time.Tick(2 * time.Second)
-	for _ = range delay {
-		readFile("/Users/joshualee/go/src/PhantomBot-2.4.0.3/logs/chat/01-07-2018.txt")
-	}
+	readFile(listOfRegulars, "/Users/joshualee/go/src/PhantomBot-2.4.0.3/logs/chat/01-07-2018.txt", discordToken, discordChannel)
 }
 
-func readFile(fname string) {
+func readFile(listOfRegulars []string, fname, discordToken, discordChannel string) {
+	// Create discord posting client
+	discordURL := "https://discordapp.com/api/channels/" + discordChannel + "/messages"
+	client := &http.Client{}
+
 	t, _ := tail.TailFile(fname, tail.Config{Follow: true})
 	for line := range t.Lines {
-		fmt.Println(line.Text)
+		if strings.Contains(line.Text, "!play") {
+			fmt.Println(line.Text)
+
+			// Parse the username out of the log file
+			withoutTag := line.Text[strings.Index(line.Text, "]"):]
+			user := withoutTag[2:strings.Index(withoutTag, ":")]
+			fmt.Printf("user requested: %s\n", user)
+
+			for _, twitchUsername := range listOfRegulars {
+				if twitchUsername == user {
+					fmt.Printf("THIS USER IS A REGULAR\n")
+
+					// Create the request to send to discord
+					message := line.Text[strings.Index(line.Text, "!play"):]
+					postingJSONStruct := []byte(`{"content" : "` + message + `"}`)
+					req, err := http.NewRequest("POST", discordURL, bytes.NewBuffer(postingJSONStruct))
+					if err != nil {
+						fmt.Printf("Error building the http POST request: %s", err)
+						return
+					}
+					req.Header.Add("Authorization", discordToken)
+					req.Header.Add("Content-Type", "application/json")
+
+					// Run the request
+					resp, err := client.Do(req)
+					if err != nil {
+						fmt.Printf("Error posting to the the discord's messages endpoint: %s", err)
+						return
+					}
+					resp.Body.Close()
+				}
+			}
+		}
 	}
 }
