@@ -69,15 +69,29 @@ func main() {
 	code = strings.Replace(code, "\r\n", "", -1)
 	code = strings.Replace(code, "\n", "", -1)
 	// Same thing we are doing for discord token
-	fmt.Print("Enter discord token: ")
-	discordToken, _ := reader.ReadString('\n')
-	discordToken = strings.Replace(discordToken, "\r\n", "", -1)
-	discordToken = strings.Replace(discordToken, "\n", "", -1)
+	// fmt.Print("Enter discord token: ")
+	// discordToken, _ := reader.ReadString('\n')
+	// discordToken = strings.Replace(discordToken, "\r\n", "", -1)
+	// discordToken = strings.Replace(discordToken, "\n", "", -1)
 	// Same thing we are doing for discord channel
-	fmt.Print("Enter discord channel: ")
-	discordChannel, _ := reader.ReadString('\n')
-	discordChannel = strings.Replace(discordChannel, "\r\n", "", -1)
-	discordChannel = strings.Replace(discordChannel, "\n", "", -1)
+	// fmt.Print("Enter discord channel: ")
+	// discordChannel, _ := reader.ReadString('\n')
+	// discordChannel = strings.Replace(discordChannel, "\r\n", "", -1)
+	// discordChannel = strings.Replace(discordChannel, "\n", "", -1)
+	// fmt.Print("Log file location: ")
+	// logLocation, _ := reader.ReadString('\n')
+	// logLocation = strings.Replace(logLocation, "\r\n", "", -1)
+	// logLocation = strings.Replace(logLocation, "\n", "", -1)
+
+	discordToken := "discordToken"
+	discordChannel := "discordChannelID"
+	logLocation := "logFileLocation"
+
+	fmt.Printf("Client Secret: %s\n", clientSecret)
+	fmt.Printf("Code: %s\n", code)
+	fmt.Printf("Discord Token: %s\n", discordToken)
+	fmt.Printf("Discord Channel: %s\n", discordChannel)
+	fmt.Printf("Log File Location: %s\n", logLocation)
 
 	// Building x-www-form-urlencoded parameters. We need these parameters in this specific format because that is the only way
 	// to call this API endpoint. This format is basically what you see at the end of a URL
@@ -87,6 +101,8 @@ func main() {
 	data.Set("grant_type", "authorization_code")
 	data.Set("redirect_uri", redirectURI)
 	data.Set("code", code)
+
+	fmt.Printf("%q\n", data)
 
 	// Build the request
 	// We are making a new HTTP POST request to the authentication URL and adding in our parameters we just added and encoded
@@ -115,6 +131,7 @@ func main() {
 	// We then take this byte array, which is in JSON format, and unmarshal is into the body. Unmarshal takes a byte array that was encoded
 	// from a JSON object and populated the JSON struct.
 	body, err := ioutil.ReadAll(resp.Body)
+	fmt.Printf("Body of getting access token %s\n", string(body))
 	tokenResp := &nightbotTokenResp{}
 	json.Unmarshal(body, tokenResp)
 	resp.Body.Close()
@@ -135,6 +152,8 @@ func main() {
 	}
 	defer regularsResponse.Body.Close()
 	body, err = ioutil.ReadAll(regularsResponse.Body)
+
+	fmt.Printf("Body of regulars response: %s\n", string(body))
 	regResp := &regularsResp{}
 	json.Unmarshal(body, regResp)
 	regularsResponse.Body.Close()
@@ -150,12 +169,14 @@ func main() {
 	}
 	// Now that we have the list of regulars, we must authenticate any !play requests from twitch so that they are, in fact, a regular
 	// We need an infinite loop to continually polling the log file for the !play request
-	readFile(listOfRegulars, "/Users/joshualee/go/src/PhantomBot-2.4.0.3/logs/chat/01-07-2018.txt", discordToken, discordChannel)
+	readFile(listOfRegulars, logLocation, discordToken, discordChannel)
 }
 
 func readFile(listOfRegulars []string, fname, discordToken, discordChannel string) {
 	// Create discord posting client
 	discordURL := "https://discordapp.com/api/channels/" + discordChannel + "/messages"
+
+	fmt.Printf("Discord URL posting to messages: %s\n", discordURL)
 	client := &http.Client{}
 
 	t, _ := tail.TailFile(fname, tail.Config{Follow: true})
@@ -171,10 +192,15 @@ func readFile(listOfRegulars []string, fname, discordToken, discordChannel strin
 			for _, twitchUsername := range listOfRegulars {
 				if twitchUsername == user {
 					fmt.Printf("THIS USER IS A REGULAR\n")
-
 					// Create the request to send to discord
 					message := line.Text[strings.Index(line.Text, "!play"):]
-					postingJSONStruct := []byte(`{"content" : "` + message + `"}`)
+					message = strings.Replace(message, "\r\n", "", -1)
+					message = strings.Replace(message, "\n", "", -1)
+					message = strings.TrimSpace(message)
+					contentBody := fmt.Sprintf(`{"content" : "%s"}`, message)
+					postingJSONStruct := []byte(contentBody)
+
+					fmt.Printf("POSTING JSON MESSAGE: %s\n", string(postingJSONStruct))
 					req, err := http.NewRequest("POST", discordURL, bytes.NewBuffer(postingJSONStruct))
 					if err != nil {
 						fmt.Printf("Error building the http POST request: %s", err)
@@ -189,6 +215,8 @@ func readFile(listOfRegulars []string, fname, discordToken, discordChannel strin
 						fmt.Printf("Error posting to the the discord's messages endpoint: %s", err)
 						return
 					}
+					body, err := ioutil.ReadAll(resp.Body)
+					fmt.Printf("POSTING TO MESSAGES: %s\n", string(body))
 					resp.Body.Close()
 				}
 			}
