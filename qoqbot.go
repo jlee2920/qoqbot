@@ -43,6 +43,11 @@ type regularsResp struct {
 	Regulars []regularInfo `json:"regulars"`
 }
 
+// type httpHeaders struct {
+// 	Name    string `json:"name"`
+// 	Content string `json:"content"`
+// }
+
 func main() {
 
 	clientID := "62e4254b14c2d05ce25bf7f384b2276e"
@@ -136,7 +141,7 @@ func main() {
 		return
 	}
 	for _, regulars := range regResp.Regulars {
-		listOfRegulars = append(listOfRegulars, regulars.DisplayName)
+		listOfRegulars = append(listOfRegulars, strings.ToLower(regulars.DisplayName))
 		fmt.Printf("Building list of regulars: %q\n", listOfRegulars)
 	}
 	// Now that we have the list of regulars, we must authenticate any !play requests from twitch so that they are, in fact, a regular
@@ -186,3 +191,8 @@ func readFile(listOfRegulars []string, fname, discordToken, discordChannel strin
 		}
 	}
 }
+
+// func makeAPIRequest(requestBody io.Reader, headers []httpHeaders, postOrGet, url string) {
+// 	client := &http.Client{}
+
+// }
