@@ -9,6 +9,9 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/hpcloud/tail"
 )
 
 // JSON structure of the response we get back from the Token's API endpoint from NightBot
@@ -58,6 +61,10 @@ func main() {
 	fmt.Print("Enter code returned from authorizing: ")
 	code, _ := reader.ReadString('\n')
 	code = strings.TrimSpace(code)
+	// Same thing we are doing for discord token
+	// fmt.Print("Enter discord token: ")
+	// discordToken, _ := reader.ReadString('\n')
+	// discordToken = strings.TrimSpace(code)
 
 	// Building x-www-form-urlencoded parameters. We need these parameters in this specific format because that is the only way
 	// to call this API endpoint. This format is basically what you see at the end of a URL
@@ -120,4 +127,17 @@ func main() {
 	regularsResponse.Body.Close()
 
 	fmt.Printf("%q\n", regResp.Regulars)
+	// Now that we have the list of regulars, we must authenticate any !play requests from twitch so that they are, in fact, a regular
+	// We need an infinite loop to continually polling the log file for the !play request
+	delay := time.Tick(2 * time.Second)
+	for _ = range delay {
+		readFile("/Users/joshualee/go/src/PhantomBot-2.4.0.3/logs/chat/01-07-2018.txt")
+	}
+}
+
+func readFile(fname string) {
+	t, _ := tail.TailFile(fname, tail.Config{Follow: true})
+	for line := range t.Lines {
+		fmt.Println(line.Text)
+	}
 }
