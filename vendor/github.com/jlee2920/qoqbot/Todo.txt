@@ -1,0 +1,26 @@
+1. Figure out how to integrate PhantomBot into discord. DONE
+2. Figure out how to read logs from a file in real time from twitch. SOMEWHAT DONE 
+    Got a shell script to post to discord
+3. Figure out how to run a server to read from the text file and run the script to post to discord
+    Got a shell script to continually poll the log and find the key word "!sr" and it invokes a shell script that makes a cURL call to discord which
+    posts into general
+4. Need to figure out how to parse the line in BASH properly
+    - Also need to look into if there is a way to intercept the API call and get the JSON from there instead of reading a log file
+    - Need to change readlogfile.sh to read the log file location from the command line
+
+A wrench in the project
+- I was relying on being able to make a cURL commmand to post to discord the song request but it technically is not
+considered a "chat" in the channel. I confirmed this by making the same request from twitch into discord manually and it worked.
+I also tried looking at the logs for the bot and it also does not recognise the qoqbot's request. Need to investigate an alternative
+to using cURL
+
+Note: This would have to be AFTER we have fonud a robust solution locally that we can extend to a remote server.
+There might be an interesting thing we can do. We can launch a free t2 small server on AWS that can do all of the needful such as checking
+if the user is a regular, or if they have queued too many songs. This would involve a server that has a database such as postgres as well 
+as a friendly UI that can make it easy to configure and change. This would allow easy management of song requests from the user. In order 
+to do this successfully, we would need to create API routes that can take the output from Twitch as well as Discord. This, however, does 
+not solve the issue as stated above. This would need to come after a base solution has been found to allow song requests from twitch be 
+played on discord. What's also interesting is that we may be able to run qoqbot from the AWS container as well. Authentication would 
+obviously be needed to prevent anyone from accessing this bot. Once fully setup, the user would not have to do anything; this bot would 
+coninually be running in a free container and be able to get lines from twitch and make posts to discord. We would also need a cronjob to 
+delete any logs that are filling up the disk as well as the database since this is a small container. 

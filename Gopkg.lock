@@ -7,9 +7,15 @@
   revision = "1cddc31c48c56ecd700d873edb9fd5b6f5df922a"
   version = "v3.3.0"
 
+[[projects]]
+  branch = "master"
+  name = "github.com/jlee2920/qoqbot"
+  packages = ["config"]
+  revision = "37175552a554f86f63726ee32cd2d077d1795508"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9208a8846a11f00fe2988f3a5d1588af6a5c87e30e500a04077b197e5b3f11c6"
+  inputs-digest = "a3b969519962c8c9c15221f702640e8318e0c5d16c50e1f639e2fded7dcab2bb"
   solver-name = "gps-cdcl"
   solver-version = 1
