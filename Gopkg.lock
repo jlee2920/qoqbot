@@ -2,39 +2,14 @@
 
 
 [[projects]]
-  name = "github.com/hpcloud/tail"
-  packages = [
-    ".",
-    "ratelimiter",
-    "util",
-    "watch",
-    "winfile"
-  ]
-  revision = "a30252cb686a21eb2d0b98132633053ec2f7f1e5"
-  version = "v1.0.0"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/sys"
-  packages = ["unix"]
-  revision = "7138fd3d9dc8335c567ca206f4333fb75eb05d56"
-
-[[projects]]
-  name = "gopkg.in/fsnotify.v1"
+  name = "github.com/caarlos0/env"
   packages = ["."]
-  revision = "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9"
-  source = "https://github.com/fsnotify/fsnotify/archive/v1.4.7.tar.gz"
-  version = "v1.4.7"
-
-[[projects]]
-  branch = "v1"
-  name = "gopkg.in/tomb.v1"
-  packages = ["."]
-  revision = "dd632973f1e7218eb1089048e0798ec9ae7dceb8"
+  revision = "1cddc31c48c56ecd700d873edb9fd5b6f5df922a"
+  version = "v3.3.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "928154d0831ad940575282d29eafbb2135a7f5c6c8c0e84d26075b28ea7a6db3"
+  inputs-digest = "9208a8846a11f00fe2988f3a5d1588af6a5c87e30e500a04077b197e5b3f11c6"
   solver-name = "gps-cdcl"
   solver-version = 1

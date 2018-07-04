@@ -7,7 +7,7 @@ let commandPrefix = '!'
 let opts = {
     identity: {
         username: 'qoqbot',
-        password: 'oauth:asfokansflnasflknaslf'
+        password: 'oauth:9hsjike9x8n496tknygotlql13g1v8'
     },
     channels: ['duckingfrunk']
 }
