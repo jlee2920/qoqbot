@@ -16,7 +16,7 @@ type Conf struct {
 // Config is a global configuration that is used within qoqbot
 var Config Conf
 
-func init() {
+func main() {
 	FromEnv()
 }
 
