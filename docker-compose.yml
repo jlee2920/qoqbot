@@ -12,3 +12,4 @@ services:
     - NIGHTBOT_REDIRECT_URI='https://localhost/'
     - NIGHTBOT_AUTH_URL='https://api.nightbot.tv/oauth2/token'
     - NIGHTBOT_CLIENT_SECRET
+    image: 046294321880.dkr.ecr.us-east-1.amazonaws.com/qoqbot:latest
