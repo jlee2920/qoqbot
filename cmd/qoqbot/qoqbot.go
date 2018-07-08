@@ -5,13 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/gempir/go-twitch-irc"
-	"github.com/jlee2920/qoqbot/config"
 )
 
 // JSON structure of the response we get back from the Token's API endpoint from NightBot
@@ -50,33 +48,39 @@ func main() {
 	// readFile(listOfRegulars, logLocation, discordToken, discordChannel)
 
 	// Initiate twitch IRL client
+	botName := "test"
+	botOAuth := "oauth:test"
+	channelName := "test"
+	discordToken := "token"
+	discordURL := "https://discordapp.com/api/channels/CHANNELID/messages"
 
-	newTwitchIRC()
+	startTwitchIRC(botName, botOAuth, channelName, discordToken, discordURL)
 
 }
 
-func newTwitchIRC() {
-	client := twitch.NewClient("clientName", "oauth:123123123")
+// Starts a new Twitch IRC client that listens for messages sent
+func startTwitchIRC(botName, botOAuth, channelName, discordToken, discordURL string) {
+	client := twitch.NewClient(botName, botOAuth)
 
-	client.Join("duckingfrunk")
+	client.Join(channelName)
 
 	client.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {
 
-		client := &http.Client{}
+		httpClient := &http.Client{}
 		contentBody := fmt.Sprintf(`{"content" : "%s"}`, message.Text)
 		postingJSONStruct := []byte(contentBody)
 
 		fmt.Printf("POSTING JSON MESSAGE: %s\n", string(postingJSONStruct))
-		req, err := http.NewRequest("POST", "https://discordapp.com/api/channels/CHANNELID/messages", bytes.NewBuffer(postingJSONStruct))
+		req, err := http.NewRequest("POST", discordURL, bytes.NewBuffer(postingJSONStruct))
 		if err != nil {
 			fmt.Printf("Error building the http POST request: %s", err)
 			return
 		}
-		req.Header.Add("Authorization", "DISCORD BOT TOKEN")
+		req.Header.Add("Authorization", discordToken)
 		req.Header.Add("Content-Type", "application/json")
 
 		// Run the request
-		resp, err := client.Do(req)
+		resp, err := httpClient.Do(req)
 		if err != nil {
 			fmt.Printf("Error posting to the the discord's messages endpoint: %s", err)
 			return
@@ -84,6 +88,8 @@ func newTwitchIRC() {
 		body, err := ioutil.ReadAll(resp.Body)
 		fmt.Printf("POSTING TO MESSAGES: %s\n", string(body))
 		resp.Body.Close()
+
+		client.Say(channelName, "POSTED MESSAGE TO DISCORD")
 	})
 
 	err := client.Connect()
@@ -170,32 +176,6 @@ func getListOfRegulars(clientID, redirectURI, authURL, clientSecret, code string
 	return listOfRegulars
 }
 
-type testStruct struct {
-	Test string
-}
-
-func test(rw http.ResponseWriter, req *http.Request) {
-
-	config := config.FromEnv()
-
-	log.Printf("%q\n", config)
-
-	req.ParseForm()
-	log.Println(req.Form)
-	//LOG: map[{"test": "that"}:[]]
-	var t testStruct
-	for key := range req.Form {
-		log.Println(key)
-		//LOG: {"test": "that"}
-		err := json.Unmarshal([]byte(key), &t)
-		if err != nil {
-			log.Println(err.Error())
-		}
-	}
-	log.Println(t.Test)
-	//LOG: that
-}
-
 // func readFile(listOfRegulars []string, fname, discordToken, discordChannel string) {
 // 	// Create discord posting client
 // 	discordURL := "https://discordapp.com/api/channels/" + discordChannel + "/messages"
@@ -246,9 +226,4 @@ func test(rw http.ResponseWriter, req *http.Request) {
 // 			}
 // 		}
 // 	}
-// }
-
-// func makeAPIRequest(requestBody io.Reader, headers []httpHeaders, postOrGet, url string) {
-// 	client := &http.Client{}
-
 // }
