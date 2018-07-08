@@ -11,7 +11,7 @@
   branch = "master"
   name = "github.com/jlee2920/qoqbot"
   packages = ["config"]
-  revision = "37175552a554f86f63726ee32cd2d077d1795508"
+  revision = "1b2d580ca9af91c920d32a59b4e918b1a2055336"
 
 [solve-meta]
   analyzer-name = "dep"

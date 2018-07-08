@@ -1,0 +1,23 @@
+{
+    "builders": [{
+        "type": "amazon-ebs",
+        "access_key": "key",
+        "secret_key": "secret",
+        "region": "us-east-1",
+        "source_ami": "ami-fce3c696",
+        "instance_type": "t2.micro",
+        "ssh_username": "ubuntu",
+        "ami_name": "qoqbot-{{timestamp}}",
+        "tags": {
+            "Name": "Qoqbot"
+        }
+    }],
+    "provisioners": [{
+        "type": "shell",
+        "inline": ["echo 'packer' | sudo -S mkdir -p /opt/qoqbot"]
+    }, {
+        "type": "file",
+        "source": "build/qoqbot.tgz",
+        "destination": "/tmp/"
+    }]
+}

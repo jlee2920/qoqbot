@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -9,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/gempir/go-twitch-irc"
 	"github.com/jlee2920/qoqbot/config"
 )
 
@@ -47,8 +49,47 @@ func main() {
 	// We need an infinite loop to continually polling the log file for the !play request
 	// readFile(listOfRegulars, logLocation, discordToken, discordChannel)
 
-	http.HandleFunc("/test", test)
-	log.Fatal(http.ListenAndServe(":9000", nil))
+	// Initiate twitch IRL client
+
+	newTwitchIRC()
+
+}
+
+func newTwitchIRC() {
+	client := twitch.NewClient("clientName", "oauth:123123123")
+
+	client.Join("duckingfrunk")
+
+	client.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {
+
+		client := &http.Client{}
+		contentBody := fmt.Sprintf(`{"content" : "%s"}`, message.Text)
+		postingJSONStruct := []byte(contentBody)
+
+		fmt.Printf("POSTING JSON MESSAGE: %s\n", string(postingJSONStruct))
+		req, err := http.NewRequest("POST", "https://discordapp.com/api/channels/CHANNELID/messages", bytes.NewBuffer(postingJSONStruct))
+		if err != nil {
+			fmt.Printf("Error building the http POST request: %s", err)
+			return
+		}
+		req.Header.Add("Authorization", "DISCORD BOT TOKEN")
+		req.Header.Add("Content-Type", "application/json")
+
+		// Run the request
+		resp, err := client.Do(req)
+		if err != nil {
+			fmt.Printf("Error posting to the the discord's messages endpoint: %s", err)
+			return
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+		fmt.Printf("POSTING TO MESSAGES: %s\n", string(body))
+		resp.Body.Close()
+	})
+
+	err := client.Connect()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func getListOfRegulars(clientID, redirectURI, authURL, clientSecret, code string) []string {

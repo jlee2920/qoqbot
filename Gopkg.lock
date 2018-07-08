@@ -8,14 +8,20 @@
   version = "v3.3.0"
 
 [[projects]]
+  name = "github.com/gempir/go-twitch-irc"
+  packages = ["."]
+  revision = "db146b2de346a6a3c52db4ce9f34d6218e80c6b7"
+  version = "0.16"
+
+[[projects]]
   branch = "master"
   name = "github.com/jlee2920/qoqbot"
   packages = ["config"]
-  revision = "1b2d580ca9af91c920d32a59b4e918b1a2055336"
+  revision = "d00f752424151ac9d2b2dd40246d1327ce395398"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a3b969519962c8c9c15221f702640e8318e0c5d16c50e1f639e2fded7dcab2bb"
+  inputs-digest = "e6b23cb63115fd144e5f8cc1eb829855b87341da0b30ca0de66cdc6fbe3e98e5"
   solver-name = "gps-cdcl"
   solver-version = 1
