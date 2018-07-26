@@ -15,8 +15,6 @@ import (
 	// import _ "github.com/jinzhu/gorm/dialects/sqlite"
 	// import _ "github.com/jinzhu/gorm/dialects/mssql"
 
-	"github.com/caarlos0/env"
-
 	"github.com/gempir/go-twitch-irc"
 	_ "github.com/lib/pq"
 )
@@ -33,23 +31,12 @@ func main() {
 	startTwitchIRC(qoqbotConfig)
 }
 
-// Grabs the environment variables found within the docker-compose.yml file
-func setupQoqbot() conf {
-	// Config is a global configuration that is used within qoqbot
-	var Config conf
-
-	if err := env.Parse(&Config); err != nil {
-		panic(err)
-	}
-	return Config
-}
-
 type regulars struct {
 	username     string
 	currentSongs int
 }
 
-func initDB(qoqbot conf) {
+func initDB(qoqbot config.Config) {
 	// Instantiate the db struct and allow db access
 	var err error
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
@@ -103,7 +90,7 @@ func endTx(conn *gorm.DB, err error) {
 }
 
 // Starts a new Twitch IRC client that listens for messages sent
-func startTwitchIRC(qoqbot conf) {
+func startTwitchIRC(qoqbot config.Config) {
 	fmt.Print("Starting server!\n")
 	// Instantiate a new client
 	client := twitch.NewClient(qoqbot.BotName, qoqbot.BotOAuth)

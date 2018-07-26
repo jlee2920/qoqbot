@@ -23,11 +23,12 @@ type Conf struct {
 	DBName     string `env:"DB_NAME"`
 }
 
+// Config is a global configuration that is used within qoqbot
+var Config Conf
+
 // GetEnv grabs the environment variables found within the docker-compose.yml file
 func GetEnv() Conf {
 	// Config is a global configuration that is used within qoqbot
-	var Config Conf
-
 	if err := env.Parse(&Config); err != nil {
 		panic(err)
 	}
