@@ -14,6 +14,7 @@ RUN cd /go/src && \
   cat qoqbot/Gopkg.lock | /bin/rq -tJ 'map "projects" | spread | map "name"' | cat | tr -d '"' | xargs -I % go install %/...
 
 ADD /cmd/qoqbot/qoqbot.go ./
-ADD basicChatBot.js ./
+ADD waitForPG.sh ./
+ADD regulars.txt ./
 
 RUN go build -o qoqbot qoqbot.go

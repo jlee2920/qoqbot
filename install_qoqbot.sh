@@ -31,4 +31,8 @@ gunzip qoqbot.tgz
 sudo docker load -i qoqbot.tar
 cd /
 
+# Make new directory and move docker-compose to a new directory
+sudo mkdir -p /opt/qoqbot
+sudo mv /tmp/docker-compose.yml /opt/qoqbot
+
 rm -rf /var/tmp/qoqbot

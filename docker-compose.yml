@@ -1,15 +1,54 @@
 version: '2.1'
 
+networks:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 172.21.0.0/24
+        iprange: 172.21.0.128/25
+
 services:
+  
+  db:
+    image: postgres
+    restart: always
+    ports:
+    - "5432:5432"
+    container_name: db
+    environment:
+    - POSTGRES_USER
+    - POSTGRES_PASSWORD
+    networks:
+      default:
+        ipv4_address: 172.21.0.2
+    volumes:
+    - data:/var/lib/postgresql/data
+    - ./postgres/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+
   qoqbot:
     build: .
     ports:
-     - "9000:9000"
+     - 9000:9000
+    depends_on:
+    - db
+    container_name: qoqbot
     environment:
-    - DISCORD_TOKEN=''
-    - DISCORD_CHANNEL=''
-    - NIGHTBOT_CLIENT_ID='62e4254b14c2d05ce25bf7f384b2276e'
-    - NIGHTBOT_REDIRECT_URI='https://localhost/'
-    - NIGHTBOT_AUTH_URL='https://api.nightbot.tv/oauth2/token'
-    - NIGHTBOT_CLIENT_SECRET
+    - DISCORD_TOKEN
+    - DISCORD_URL
+    - BOT_NAME
+    - BOT_OAUTH
+    - CHANNEL_NAME
+    - DB_USER
+    - DB_PASSWORD
+    - DB_HOST
+    - DB_PORT
+    - DB_NAME
     image: 046294321880.dkr.ecr.us-east-1.amazonaws.com/qoqbot:latest
+    command: ["./waitForPG.sh", "localhost", "./qoqbot"]
+    volumes:
+    - data:/etc/qoqbot
+
+volumes:
+  data: #holds the information necessary to run qoqbot

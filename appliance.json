@@ -18,6 +18,11 @@
             "destination": "/tmp/"
         },
         {
+            "type": "file",
+            "source": "docker-compose.yml",
+            "destination": "/tmp/"
+        },
+        {
             "type": "shell",
             "scripts": [
                 "install_qoqbot.sh"

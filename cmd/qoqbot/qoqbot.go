@@ -2,94 +2,157 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strings"
 
+	"github.com/jinzhu/gorm"
+	// import _ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+	// import _ "github.com/jinzhu/gorm/dialects/sqlite"
+	// import _ "github.com/jinzhu/gorm/dialects/mssql"
+
+	"github.com/caarlos0/env"
+
 	"github.com/gempir/go-twitch-irc"
+	_ "github.com/lib/pq"
 )
 
-// JSON structure of the response we get back from the Token's API endpoint from NightBot
-type nightbotTokenResp struct {
-	// Structure is as follows: Name_of_variable type json_variable_in_response
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	TokenType    string `json:"token_type"`
-	ExpiresIn    string `json:"expires_in"`
-	Scope        string `json:"scope"`
+// conf holds the environment configurations taken from docker-compose.yml
+type conf struct {
+	// Discord Information
+	DiscordToken string `env:"DISCORD_TOKEN"`
+	DiscordURL   string `env:"DISCORD_URL"`
+
+	// Twitch Bot Information
+	BotName     string `env:"BOT_NAME"`
+	BotOAuth    string `env:"BOT_OAUTH"`
+	ChannelName string `env:"CHANNEL_NAME"`
+
+	// PostgreSQL Credentials
+	DBUser     string `env:"DB_USER"`
+	DBPassword string `env:"DB_PASSWORD"`
+	DBHost     string `env:"DB_HOST"`
+	DBPort     int    `env:"DB_PORT"`
+	DBName     string `env:"DB_NAME"`
 }
 
-// JSON structure of the information returned from the regulars list
-type regularInfo struct {
-	ID          string `json:"_id"`
-	CreatedAt   string `json:"createdAt"`
-	UpdatedAt   string `json:"2018-06-27T03:20:51.564Z"`
-	Provider    string `json:"provider"`
-	ProviderID  string `json:"providerId"`
-	Name        string `json:"name"`
-	DisplayName string `json:"displayName"`
-}
-
-// Main JSON structure of the response from the Regular's API endpoint from Nightbot
-type regularsResp struct {
-	Total  int `json:"_total"`
-	Status int `json:"status"`
-	// This variable takes in the previous JSON structure as it's type
-	Regulars []regularInfo `json:"regulars"`
-}
+var db *gorm.DB
 
 func main() {
-
-	// Now that we have the list of regulars, we must authenticate any !play requests from twitch so that they are, in fact, a regular
-	// We need an infinite loop to continually polling the log file for the !play request
-	// readFile(listOfRegulars, logLocation, discordToken, discordChannel)
-
+	// initialize the environment variables
+	qoqbotConfig := setupQoqbot()
+	// Initialize the database
+	initDB(qoqbotConfig)
+	defer db.Close()
 	// Initiate twitch IRL client
-	botName := "test"
-	botOAuth := "oauth:test"
-	channelName := "test"
-	discordToken := "token"
-	discordURL := "https://discordapp.com/api/channels/CHANNELID/messages"
+	startTwitchIRC(qoqbotConfig)
+}
 
-	startTwitchIRC(botName, botOAuth, channelName, discordToken, discordURL)
+// Grabs the environment variables found within the docker-compose.yml file
+func setupQoqbot() conf {
+	// Config is a global configuration that is used within qoqbot
+	var Config conf
 
+	if err := env.Parse(&Config); err != nil {
+		panic(err)
+	}
+	return Config
+}
+
+type regulars struct {
+	username     string
+	currentSongs int
+}
+
+func initDB(qoqbot conf) {
+	// Instantiate the db struct and allow db access
+	var err error
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
+		qoqbot.DBHost, qoqbot.DBPort, qoqbot.DBUser, qoqbot.DBName, qoqbot.DBPassword)
+
+	fmt.Println(psqlInfo)
+	db, err = gorm.Open("postgres", psqlInfo)
+	if err != nil {
+		fmt.Printf("Failed to open gorm: %q\n", err)
+	}
+	fmt.Println("Successfully connected to database!")
+
+	// Initialize all existing regulars from a text file
+	fmt.Println("Reading regulars.txt to initialize all existing regulars")
+
+	regularsBytes, _ := ioutil.ReadFile("/go/src/qoqbot/regulars.txt")
+	listOfRegulars := strings.Split(string(regularsBytes), ",")
+
+	txDB := beginTx(db)
+	defer func() {
+		endTx(db, err)
+	}()
+
+	for _, regular := range listOfRegulars {
+		fmt.Printf("Adding to the list of regulars: %s\n", regular)
+		if err := txDB.Create(&regulars{username: regular, currentSongs: 0}).Error; err != nil {
+			txDB.Rollback()
+			fmt.Printf("Failed to create, rolling back")
+		}
+	}
+
+	fmt.Println("Finished initializing all users to database!")
+}
+
+func beginTx(conn *gorm.DB) *gorm.DB {
+	conn = conn.Begin()
+	if conn.Error != nil {
+		fmt.Printf("Failed to start transaction\n")
+	}
+	return conn
+}
+
+func endTx(conn *gorm.DB, err error) {
+	if err == nil {
+		fmt.Printf("Committing\n")
+		conn.Commit()
+	} else {
+		fmt.Printf("Rolling back\n")
+		conn.Rollback()
+	}
 }
 
 // Starts a new Twitch IRC client that listens for messages sent
-func startTwitchIRC(botName, botOAuth, channelName, discordToken, discordURL string) {
-	client := twitch.NewClient(botName, botOAuth)
+func startTwitchIRC(qoqbot conf) {
+	fmt.Print("Starting server!\n")
+	// Instantiate a new client
+	client := twitch.NewClient(qoqbot.BotName, qoqbot.BotOAuth)
+	// Join the client to the twitch channel
+	client.Join(qoqbot.ChannelName)
 
-	client.Join(channelName)
-
+	// Waits over IRC for a message to be posted to twitch then processed here
 	client.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {
+		// If we see an ! as the first character, we can assume that it is a command. If no valid command is chosen, then we will a message sent back saying Invalid command
+		if message.Text[0:1] == "!" {
+			// firstSpace will get the index of the first space which should be right after the command
+			firstSpace := strings.Index(message.Text, " ")
+			command := message.Text[1:firstSpace]
+			client.Say(qoqbot.ChannelName, fmt.Sprintf("Command given: %s\n", command))
 
-		httpClient := &http.Client{}
-		contentBody := fmt.Sprintf(`{"content" : "%s"}`, message.Text)
-		postingJSONStruct := []byte(contentBody)
-
-		fmt.Printf("POSTING JSON MESSAGE: %s\n", string(postingJSONStruct))
-		req, err := http.NewRequest("POST", discordURL, bytes.NewBuffer(postingJSONStruct))
-		if err != nil {
-			fmt.Printf("Error building the http POST request: %s", err)
-			return
+			switch command {
+			case "regulars":
+				regularsCommand(client, firstSpace, qoqbot.ChannelName, message.Text)
+				postToDiscord(qoqbot.DiscordURL, qoqbot.DiscordToken, "Made a regulars command")
+				break
+			case "play":
+				isRegular := checkRegularsList(user.Username)
+				if isRegular {
+					postToDiscord(qoqbot.DiscordURL, qoqbot.DiscordToken, message.Text)
+				} else {
+					client.Say(qoqbot.ChannelName, "You must be a regular request a song.\n")
+				}
+				break
+			default:
+				postToDiscord(qoqbot.DiscordURL, qoqbot.DiscordToken, message.Text)
+			}
 		}
-		req.Header.Add("Authorization", discordToken)
-		req.Header.Add("Content-Type", "application/json")
-
-		// Run the request
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			fmt.Printf("Error posting to the the discord's messages endpoint: %s", err)
-			return
-		}
-		body, err := ioutil.ReadAll(resp.Body)
-		fmt.Printf("POSTING TO MESSAGES: %s\n", string(body))
-		resp.Body.Close()
-
-		client.Say(channelName, "POSTED MESSAGE TO DISCORD")
 	})
 
 	err := client.Connect()
@@ -98,132 +161,111 @@ func startTwitchIRC(botName, botOAuth, channelName, discordToken, discordURL str
 	}
 }
 
-func getListOfRegulars(clientID, redirectURI, authURL, clientSecret, code string) []string {
-	// Building x-www-form-urlencoded parameters. We need these parameters in this specific format because that is the only way
-	// to call this API endpoint. This format is basically what you see at the end of a URL
-	data := url.Values{}
-	data.Set("client_id", clientID)
-	data.Set("client_secret", clientSecret)
-	data.Set("grant_type", "authorization_code")
-	data.Set("redirect_uri", redirectURI)
-	data.Set("code", code)
+// Takes the discordURL for where to POST and the discordToken of qoqbot to echo message
+func postToDiscord(discordURL, discordToken, message string) {
+	httpClient := &http.Client{}
+	contentBody := fmt.Sprintf(`{"content" : "%s"}`, message)
+	postingJSONStruct := []byte(contentBody)
 
-	fmt.Printf("%q\n", data)
-
-	// Build the request
-	// We are making a new HTTP POST request to the authentication URL and adding in our parameters we just added and encoded
-	req, err := http.NewRequest("POST", authURL, strings.NewReader(data.Encode()))
+	// Creating a new POST request with the message from twitch chat
+	req, err := http.NewRequest("POST", discordURL, bytes.NewBuffer(postingJSONStruct))
 	if err != nil {
 		fmt.Printf("Error building the http POST request: %s", err)
-		return nil
+		return
 	}
-	// We create a new HTTP client to send the request and add the content type header
-	client := &http.Client{}
-	// Content-Type is a header that is the client telling the server what kind of data is expected to be given - required to be
-	// application/x-www-form-urlencoded be NightBot
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	// Creates all the authorization headers required
+	req.Header.Add("Authorization", discordToken)
+	req.Header.Add("Content-Type", "application/json")
 
 	// Run the request
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
-		fmt.Printf("Error posting to the the tokens endpoint: %s", err)
-		return nil
+		fmt.Printf("Error posting to the the discord's messages endpoint: %s", err)
+		return
 	}
-	defer resp.Body.Close() //defer is a call that would happen at the end of the program no matter if it exited gracefully or not
 
-	// Grab the response and put it into tokenResp
-	// Since the response from the server is in the type io reader, we need to convert this to a different scheme in order to parse it
-	// properly. To do this, we pass it into ioutil's ReadAll function to get the body of the response out into a byte array.
-	// We then take this byte array, which is in JSON format, and unmarshal is into the body. Unmarshal takes a byte array that was encoded
-	// from a JSON object and populated the JSON struct.
+	// Reads the response from discord and prints it out onto the terminal
 	body, err := ioutil.ReadAll(resp.Body)
-	fmt.Printf("Body of getting access token %s\n", string(body))
-	tokenResp := &nightbotTokenResp{}
-	json.Unmarshal(body, tokenResp)
+	fmt.Printf("POSTING TO MESSAGES: %s\n", string(body))
 	resp.Body.Close()
-
-	// Now we need to make an API post call to
-	regularsURL := "https://api.nightbot.tv/1/regulars"
-	req, err = http.NewRequest("GET", regularsURL, nil)
-	if err != nil {
-		fmt.Printf("Error building the http GET request: %s", err)
-		return nil
-	}
-	req.Header.Add("Authorization", "Bearer "+tokenResp.AccessToken)
-
-	regularsResponse, err := client.Do(req)
-	if err != nil {
-		fmt.Printf("Error getting from regulars endpoint: %s", err)
-		return nil
-	}
-	defer regularsResponse.Body.Close()
-	body, err = ioutil.ReadAll(regularsResponse.Body)
-
-	fmt.Printf("Body of regulars response: %s\n", string(body))
-	regResp := &regularsResp{}
-	json.Unmarshal(body, regResp)
-	regularsResponse.Body.Close()
-
-	var listOfRegulars []string
-	if len(regResp.Regulars) == 0 {
-		fmt.Printf("Could not find list of regulars, check your code from authorization. Exiting")
-		return nil
-	}
-	for _, regulars := range regResp.Regulars {
-		listOfRegulars = append(listOfRegulars, strings.ToLower(regulars.DisplayName))
-		fmt.Printf("Building list of regulars: %q\n", listOfRegulars)
-	}
-	return listOfRegulars
 }
 
-// func readFile(listOfRegulars []string, fname, discordToken, discordChannel string) {
-// 	// Create discord posting client
-// 	discordURL := "https://discordapp.com/api/channels/" + discordChannel + "/messages"
+// regularsCommand is run when the command from twitch begins with !regulars ...
+func regularsCommand(client *twitch.Client, firstSpace int, channelName, message string) {
+	secondSpace := strings.Index(message[firstSpace+1:], " ")
+	// If secondSpace is -1, we will take the remaining string of the message and see if it's list. If not, we will return an error message to twitch
+	if secondSpace == -1 {
+		if strings.Contains(message[firstSpace+1:], "list") {
+			regularsBytes, err := ioutil.ReadFile("/opt/qoqbot/regulars.txt")
+			if err != nil {
+				fmt.Printf("Could not find the list of regulars.\n")
+				client.Say(channelName, "There are no regulars.")
+			} else {
+				client.Say(channelName, string(regularsBytes))
+			}
+		} else {
+			client.Say(channelName, "Invalid command.")
+		}
+	} else {
+		subCommand := message[firstSpace+1 : firstSpace+1+secondSpace]
+		// First two cases, we expect another argument to the command, otherwise it is invalid
+		if subCommand == "add" {
+			// We must now find the name and write him to the list of regulars
+			name := strings.Trim(message[firstSpace+1+secondSpace:], " ")
+			fmt.Printf("Adding user: %s\n", name)
+			addingToList := "," + name
 
-// 	fmt.Printf("Discord URL posting to messages: %s\n", discordURL)
-// 	client := &http.Client{}
+			// Get the current list
+			regularsBytes, err := ioutil.ReadFile("/opt/qoqbot/regulars.txt")
+			if err != nil {
+				fmt.Printf("Could not find the list of regulars.\n")
+				client.Say(channelName, "There are no regulars.")
+			}
 
-// 	t, _ := tail.TailFile(fname, tail.Config{Follow: true})
-// 	for line := range t.Lines {
-// 		if strings.Contains(line.Text, "!play") {
-// 			fmt.Println(line.Text)
+			// Construct the new list
+			newRegularsList := string(regularsBytes) + addingToList
 
-// 			// Parse the username out of the log file
-// 			withoutTag := line.Text[strings.Index(line.Text, "]"):]
-// 			user := withoutTag[2:strings.Index(withoutTag, ":")]
-// 			fmt.Printf("user requested: %s\n", user)
+			// Write to the regulars file
+			err = ioutil.WriteFile("/opt/qoqbot/regulars.txt", []byte(newRegularsList), 0644)
+			if err != nil {
+				fmt.Printf("Error adding user %s to the regulars list", name)
+				client.Say(channelName, fmt.Sprintf("Could not add user %s to the regulars list", name))
+			} else {
+				client.Say(channelName, fmt.Sprintf("Successfully added user %s to the regulars list", name))
+			}
+		} else if subCommand == "remove" {
+			name := strings.Trim(message[firstSpace+1+secondSpace:], " ")
+			fmt.Printf("Removing user: %s\n", name)
+			removeFromList := "," + name
 
-// 			for _, twitchUsername := range listOfRegulars {
-// 				if twitchUsername == user {
-// 					fmt.Printf("THIS USER IS A REGULAR\n")
-// 					// Create the request to send to discord
-// 					message := line.Text[strings.Index(line.Text, "!play"):]
-// 					message = strings.Replace(message, "\r\n", "", -1)
-// 					message = strings.Replace(message, "\n", "", -1)
-// 					message = strings.TrimSpace(message)
-// 					contentBody := fmt.Sprintf(`{"content" : "%s"}`, message)
-// 					postingJSONStruct := []byte(contentBody)
+			regularsBytes, err := ioutil.ReadFile("/opt/qoqbot/regulars.txt")
+			if err != nil {
+				fmt.Printf("Could not find the list of regulars.\n")
+				client.Say(channelName, "There are no regulars.")
+			} else {
+				regulars := string(regularsBytes)
+				indexOfRemove := strings.Index(regulars, removeFromList)
+				if indexOfRemove == -1 {
+					client.Say(channelName, fmt.Sprintf("User %s\n is not a regular.", name))
+				} else {
+					fmt.Printf("String: %s\nIndex of remove: %d\n", regulars, indexOfRemove)
+					client.Say(channelName, regulars[:indexOfRemove]+regulars[indexOfRemove+len(removeFromList):])
+				}
+			}
 
-// 					fmt.Printf("POSTING JSON MESSAGE: %s\n", string(postingJSONStruct))
-// 					req, err := http.NewRequest("POST", discordURL, bytes.NewBuffer(postingJSONStruct))
-// 					if err != nil {
-// 						fmt.Printf("Error building the http POST request: %s", err)
-// 						return
-// 					}
-// 					req.Header.Add("Authorization", discordToken)
-// 					req.Header.Add("Content-Type", "application/json")
+		} else {
+			client.Say(channelName, "Invalid command.")
+		}
+	}
+}
 
-// 					// Run the request
-// 					resp, err := client.Do(req)
-// 					if err != nil {
-// 						fmt.Printf("Error posting to the the discord's messages endpoint: %s", err)
-// 						return
-// 					}
-// 					body, err := ioutil.ReadAll(resp.Body)
-// 					fmt.Printf("POSTING TO MESSAGES: %s\n", string(body))
-// 					resp.Body.Close()
-// 				}
-// 			}
-// 		}
-// 	}
-// }
+// Reads the regulars list and searches for the username, returns true if the user exists
+func checkRegularsList(username string) bool {
+	regularsBytes, err := ioutil.ReadFile("/opt/qoqbot/regulars.txt")
+	if err != nil {
+		fmt.Printf("Could not find the list of regulars.\n")
+		return false
+	}
+	return strings.Contains(string(regularsBytes), username)
+}
