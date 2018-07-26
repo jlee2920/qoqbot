@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/jlee2920/qoqbot.git/config"
+
 	"github.com/jinzhu/gorm"
 	// import _ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -19,30 +21,11 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// conf holds the environment configurations taken from docker-compose.yml
-type conf struct {
-	// Discord Information
-	DiscordToken string `env:"DISCORD_TOKEN"`
-	DiscordURL   string `env:"DISCORD_URL"`
-
-	// Twitch Bot Information
-	BotName     string `env:"BOT_NAME"`
-	BotOAuth    string `env:"BOT_OAUTH"`
-	ChannelName string `env:"CHANNEL_NAME"`
-
-	// PostgreSQL Credentials
-	DBUser     string `env:"DB_USER"`
-	DBPassword string `env:"DB_PASSWORD"`
-	DBHost     string `env:"DB_HOST"`
-	DBPort     int    `env:"DB_PORT"`
-	DBName     string `env:"DB_NAME"`
-}
-
 var db *gorm.DB
 
 func main() {
 	// initialize the environment variables
-	qoqbotConfig := setupQoqbot()
+	qoqbotConfig := config.GetEnv()
 	// Initialize the database
 	initDB(qoqbotConfig)
 	defer db.Close()
