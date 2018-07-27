@@ -68,7 +68,7 @@ func initDB(qoqbot config.Conf) {
 			username:     regular,
 			currentSongs: 0,
 		}
-		db.Create(reg))
+		db.Create(reg)
 	}
 
 	fmt.Println("Finished initializing all users to database!")

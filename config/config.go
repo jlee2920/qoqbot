@@ -26,8 +26,8 @@ type Conf struct {
 // Config is a global configuration that is used within qoqbot
 var Config Conf
 
-// GetEnv grabs the environment variables found within the docker-compose.yml file
-func GetEnv() Conf {
+// InitEnv grabs the environment variables found within the docker-compose.yml file
+func InitEnv() Conf {
 	// Config is a global configuration that is used within qoqbot
 	if err := env.Parse(&Config); err != nil {
 		panic(err)
