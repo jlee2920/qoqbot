@@ -1,4 +1,4 @@
-FROM golang:1.9.2-alpine3.6
+FROM golang:alpine
 
 RUN apk add --no-cache curl && \
     curl -Lo /bin/rq  https://s3-eu-west-1.amazonaws.com/record-query/record-query/x86_64-unknown-linux-musl/rq && \
