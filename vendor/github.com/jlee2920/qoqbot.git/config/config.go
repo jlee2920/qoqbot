@@ -4,8 +4,8 @@ import (
 	"github.com/caarlos0/env"
 )
 
-// conf holds the environment configurations taken from docker-compose.yml
-type conf struct {
+// Conf holds the environment configurations taken from docker-compose.yml
+type Conf struct {
 	// Discord Information
 	DiscordToken string `env:"DISCORD_TOKEN"`
 	DiscordURL   string `env:"DISCORD_URL"`
@@ -23,11 +23,12 @@ type conf struct {
 	DBName     string `env:"DB_NAME"`
 }
 
-// Grabs the environment variables found within the docker-compose.yml file
-func GetEnv() conf {
-	// Config is a global configuration that is used within qoqbot
-	var Config conf
+// Config is a global configuration that is used within qoqbot
+var Config Conf
 
+// InitEnv grabs the environment variables found within the docker-compose.yml file
+func InitEnv() Conf {
+	// Config is a global configuration that is used within qoqbot
 	if err := env.Parse(&Config); err != nil {
 		panic(err)
 	}

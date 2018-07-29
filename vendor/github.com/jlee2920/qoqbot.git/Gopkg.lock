@@ -10,8 +10,8 @@
 [[projects]]
   name = "github.com/gempir/go-twitch-irc"
   packages = ["."]
-  revision = "db146b2de346a6a3c52db4ce9f34d6218e80c6b7"
-  version = "0.16"
+  revision = "59099d707fceaf5977fb5532f259a8eb6f36bec7"
+  version = "0.17"
 
 [[projects]]
   name = "github.com/jinzhu/gorm"
@@ -30,6 +30,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/jlee2920/qoqbot.git"
+  packages = ["config"]
+  revision = "8ebc08ba6d7b5f920f2f5ce8822bec632429b9dd"
+
+[[projects]]
+  branch = "master"
   name = "github.com/lib/pq"
   packages = [
     ".",
@@ -41,6 +47,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1980903493fb7888dafaaf5b758d10bed277df38c8778c6c9922b5da89f5f94b"
+  inputs-digest = "6425a0d2f22ce9a9353fd4e8f7e14b94e3bca03382997f3e6e817a1c3e3d06c2"
   solver-name = "gps-cdcl"
   solver-version = 1

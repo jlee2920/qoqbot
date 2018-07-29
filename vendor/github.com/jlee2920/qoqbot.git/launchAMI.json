@@ -1,0 +1,32 @@
+{
+    "builders": [{
+        "type": "amazon-ebs",
+        "access_key": "",
+        "secret_key": "",
+        "region": "us-east-1",
+        "source_ami": "ami-fce3c696",
+        "instance_type": "t2.micro",
+        "ssh_username": "ubuntu",
+        "ami_name": "qoqbot-{{timestamp}}",
+        "tags": {
+            "Name": "Qoqbot"
+        }
+    }],
+    "provisioners": [{
+            "type": "file",
+            "source": "build/qoqbot.tgz",
+            "destination": "/tmp/"
+        },
+        {
+            "type": "file",
+            "source": "docker-compose.yml",
+            "destination": "/tmp/"
+        },
+        {
+            "type": "shell",
+            "scripts": [
+                "install_qoqbot.sh"
+            ]
+        }
+    ]
+}

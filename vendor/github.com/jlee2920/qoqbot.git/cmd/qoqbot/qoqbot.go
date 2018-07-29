@@ -15,8 +15,6 @@ import (
 	// import _ "github.com/jinzhu/gorm/dialects/sqlite"
 	// import _ "github.com/jinzhu/gorm/dialects/mssql"
 
-	"github.com/caarlos0/env"
-
 	"github.com/gempir/go-twitch-irc"
 	_ "github.com/lib/pq"
 )
@@ -25,31 +23,23 @@ var db *gorm.DB
 
 func main() {
 	// initialize the environment variables
-	qoqbotConfig := config.GetEnv()
+	config.InitEnv()
 	// Initialize the database
-	initDB(qoqbotConfig)
+	initDB(config.Config)
 	defer db.Close()
 	// Initiate twitch IRL client
-	startTwitchIRC(qoqbotConfig)
+	startTwitchIRC(config.Config)
 }
 
-// Grabs the environment variables found within the docker-compose.yml file
-func setupQoqbot() conf {
-	// Config is a global configuration that is used within qoqbot
-	var Config conf
+// Regulars is the struct used for keeping track of who is a regular and how many songs they have done
+type Regulars struct {
+	gorm.Model
 
-	if err := env.Parse(&Config); err != nil {
-		panic(err)
-	}
-	return Config
-}
-
-type regulars struct {
 	username     string
 	currentSongs int
 }
 
-func initDB(qoqbot conf) {
+func initDB(qoqbot config.Conf) {
 	// Instantiate the db struct and allow db access
 	var err error
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
@@ -62,48 +52,30 @@ func initDB(qoqbot conf) {
 	}
 	fmt.Println("Successfully connected to database!")
 
+	// Automigrating users
+	fmt.Println("Initiating auto migration of regulars struct")
+	db.AutoMigrate(&Regulars{})
+
 	// Initialize all existing regulars from a text file
 	fmt.Println("Reading regulars.txt to initialize all existing regulars")
 
 	regularsBytes, _ := ioutil.ReadFile("/go/src/qoqbot/regulars.txt")
 	listOfRegulars := strings.Split(string(regularsBytes), ",")
 
-	txDB := beginTx(db)
-	defer func() {
-		endTx(db, err)
-	}()
-
 	for _, regular := range listOfRegulars {
 		fmt.Printf("Adding to the list of regulars: %s\n", regular)
-		if err := txDB.Create(&regulars{username: regular, currentSongs: 0}).Error; err != nil {
-			txDB.Rollback()
-			fmt.Printf("Failed to create, rolling back")
+		reg := &Regulars{
+			username:     regular,
+			currentSongs: 0,
 		}
+		db.Create(reg)
 	}
 
 	fmt.Println("Finished initializing all users to database!")
 }
 
-func beginTx(conn *gorm.DB) *gorm.DB {
-	conn = conn.Begin()
-	if conn.Error != nil {
-		fmt.Printf("Failed to start transaction\n")
-	}
-	return conn
-}
-
-func endTx(conn *gorm.DB, err error) {
-	if err == nil {
-		fmt.Printf("Committing\n")
-		conn.Commit()
-	} else {
-		fmt.Printf("Rolling back\n")
-		conn.Rollback()
-	}
-}
-
 // Starts a new Twitch IRC client that listens for messages sent
-func startTwitchIRC(qoqbot conf) {
+func startTwitchIRC(qoqbot config.Conf) {
 	fmt.Print("Starting server!\n")
 	// Instantiate a new client
 	client := twitch.NewClient(qoqbot.BotName, qoqbot.BotOAuth)
