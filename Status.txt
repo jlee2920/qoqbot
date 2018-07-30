@@ -1,0 +1,35 @@
+Done:
+
+1.  Figure out how to integrate PhantomBot into discord
+2.  Figure out how to read logs from a file in real time from twitch
+3.  Figure out how to run a server to read from the text file and run the script to post to discord
+4.  Need to figure out how to parse the line in BASH properly
+5.  Drop the idea of a bash script - purely golang based HTTP requests
+6.  Figure out a Golang based tail to read the last line of the log file outputted by PhantomBot
+7.  Remove dependency on PhantomBot by incorporating a Golang Twitch IRC
+8.  Keep a text file with a comma separated list of regulars to parse through
+9.  Figure out how to deplay an AMI to AWS EC2 and run an image of our docker image
+10. Keep a persistent Docker Volume with the text file stored on it (SKIP)
+11. Incorporate PostgreSQL as our data management SQL container for persistent data storage in Docker Volumes
+12. Incorporate a Golang GORM to allow easy manipulation of relational mapping within the database
+13. Implement the regulars command to be able to add, list and delete from the database
+14. Allow only a regular to make a song request command
+
+In Progress:
+
+1.  Exempt mods and the broadcaster from the restriction for regulars (possible extend our Golang Twitch IRC to support more information from the user making the request)
+
+Todo (not prioritized):
+
+1.  Incorporate a Discord IRC to allow information read from the music player to be returned back to the user making the request on Twitch
+2.  Implement a way to only allow a user three songs on the queue. (Make this configurarble by environment variable, this might also require us to select an open source music bot - already forked - to do this and allow an easier way to get #2 done)
+3.  Update our music bot to allow song deletion based on queue position/name of song
+
+Backlog (not prioritized): 
+
+1.  Banter counter for discord
+2.  !commands API (list, add, remove)
+3.  React.js/Node.js Based GUI for easy manipulation and viewing
+4.  Authentication for logging in
+5.  OSRS GE command
+6.  OSRS quest guide easy look-up
