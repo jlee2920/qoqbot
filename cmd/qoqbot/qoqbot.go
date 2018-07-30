@@ -10,10 +10,10 @@ import (
 	"github.com/jlee2920/qoqbot.git/config"
 
 	"github.com/jinzhu/gorm"
-	// import _ "github.com/jinzhu/gorm/dialects/mysql"
+	// _ "github.com/jinzhu/gorm/dialects/mssql"
+	// _ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	// import _ "github.com/jinzhu/gorm/dialects/sqlite"
-	// import _ "github.com/jinzhu/gorm/dialects/mssql"
+	// _ "github.com/jinzhu/gorm/dialects/sqlite"
 
 	"github.com/gempir/go-twitch-irc"
 	_ "github.com/lib/pq"
@@ -33,10 +33,9 @@ func main() {
 
 // Regulars is the struct used for keeping track of who is a regular and how many songs they have done
 type Regulars struct {
-	gorm.Model
-
-	username     string
-	currentSongs int
+	ID           uint `gorm:"primary_key"`
+	Username     string
+	CurrentSongs int
 }
 
 func initDB(qoqbot config.Conf) {
@@ -52,21 +51,16 @@ func initDB(qoqbot config.Conf) {
 	}
 	fmt.Println("Successfully connected to database!")
 
-	// Automigrating users
-	fmt.Println("Initiating auto migration of regulars struct")
-	db.AutoMigrate(&Regulars{})
-
 	// Initialize all existing regulars from a text file
 	fmt.Println("Reading regulars.txt to initialize all existing regulars")
-
-	regularsBytes, _ := ioutil.ReadFile("/go/src/qoqbot/regulars.txt")
+	regularsBytes, _ := ioutil.ReadFile("/go/src/qoqbot.git/regulars.txt")
 	listOfRegulars := strings.Split(string(regularsBytes), ",")
 
 	for _, regular := range listOfRegulars {
 		fmt.Printf("Adding to the list of regulars: %s\n", regular)
 		reg := &Regulars{
-			username:     regular,
-			currentSongs: 0,
+			Username:     regular,
+			CurrentSongs: 0,
 		}
 		db.Create(reg)
 	}
@@ -84,12 +78,19 @@ func startTwitchIRC(qoqbot config.Conf) {
 
 	// Waits over IRC for a message to be posted to twitch then processed here
 	client.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {
+
+		isExempt := false
+		for k := range user.Badges {
+			if k == "moderator" || k == "broadcaster" {
+				isExempt = true
+			}
+		}
+
 		// If we see an ! as the first character, we can assume that it is a command. If no valid command is chosen, then we will a message sent back saying Invalid command
 		if message.Text[0:1] == "!" {
 			// firstSpace will get the index of the first space which should be right after the command
 			firstSpace := strings.Index(message.Text, " ")
 			command := message.Text[1:firstSpace]
-			client.Say(qoqbot.ChannelName, fmt.Sprintf("Command given: %s\n", command))
 
 			switch command {
 			case "regulars":
@@ -97,7 +98,7 @@ func startTwitchIRC(qoqbot config.Conf) {
 				postToDiscord(qoqbot.DiscordURL, qoqbot.DiscordToken, "Made a regulars command")
 				break
 			case "play":
-				isRegular := checkRegularsList(user.Username)
+				isRegular := checkRegularsList(user.Username, isExempt)
 				if isRegular {
 					postToDiscord(qoqbot.DiscordURL, qoqbot.DiscordToken, message.Text)
 				} else {
@@ -149,16 +150,19 @@ func postToDiscord(discordURL, discordToken, message string) {
 // regularsCommand is run when the command from twitch begins with !regulars ...
 func regularsCommand(client *twitch.Client, firstSpace int, channelName, message string) {
 	secondSpace := strings.Index(message[firstSpace+1:], " ")
-	// If secondSpace is -1, we will take the remaining string of the message and see if it's list. If not, we will return an error message to twitch
+	// If secondSpace is -1, we will take the remaining string of the message and see if it's list.
+	// If not, we will return an error message to twitch
 	if secondSpace == -1 {
 		if strings.Contains(message[firstSpace+1:], "list") {
-			regularsBytes, err := ioutil.ReadFile("/opt/qoqbot/regulars.txt")
-			if err != nil {
-				fmt.Printf("Could not find the list of regulars.\n")
-				client.Say(channelName, "There are no regulars.")
-			} else {
-				client.Say(channelName, string(regularsBytes))
+			rows, _ := db.Model(&Regulars{}).Select("username").Rows()
+			finalUsersString := "List of regulars:"
+			for rows.Next() {
+				var regular Regulars
+				db.ScanRows(rows, &regular)
+				finalUsersString = finalUsersString + fmt.Sprintf(" %s,", regular.Username)
 			}
+			finalUsersString = finalUsersString[:len(finalUsersString)-1]
+			client.Say(channelName, finalUsersString)
 		} else {
 			client.Say(channelName, "Invalid command.")
 		}
@@ -169,58 +173,40 @@ func regularsCommand(client *twitch.Client, firstSpace int, channelName, message
 			// We must now find the name and write him to the list of regulars
 			name := strings.Trim(message[firstSpace+1+secondSpace:], " ")
 			fmt.Printf("Adding user: %s\n", name)
-			addingToList := "," + name
 
-			// Get the current list
-			regularsBytes, err := ioutil.ReadFile("/opt/qoqbot/regulars.txt")
-			if err != nil {
-				fmt.Printf("Could not find the list of regulars.\n")
-				client.Say(channelName, "There are no regulars.")
+			// Add the user to the database
+			reg := &Regulars{
+				Username:     name,
+				CurrentSongs: 0,
 			}
-
-			// Construct the new list
-			newRegularsList := string(regularsBytes) + addingToList
-
-			// Write to the regulars file
-			err = ioutil.WriteFile("/opt/qoqbot/regulars.txt", []byte(newRegularsList), 0644)
+			err := db.Create(reg).Error
 			if err != nil {
-				fmt.Printf("Error adding user %s to the regulars list", name)
-				client.Say(channelName, fmt.Sprintf("Could not add user %s to the regulars list", name))
+				client.Say(channelName, fmt.Sprintf("%s is already a regular!", name))
 			} else {
-				client.Say(channelName, fmt.Sprintf("Successfully added user %s to the regulars list", name))
+				client.Say(channelName, fmt.Sprintf("%s has been sucessfully added to the regulars list!", name))
 			}
-		} else if subCommand == "remove" {
+
+		} else if subCommand == "delete" {
 			name := strings.Trim(message[firstSpace+1+secondSpace:], " ")
 			fmt.Printf("Removing user: %s\n", name)
-			removeFromList := "," + name
 
-			regularsBytes, err := ioutil.ReadFile("/opt/qoqbot/regulars.txt")
+			err := db.Delete(Regulars{}, "username = ?", name).Error
 			if err != nil {
-				fmt.Printf("Could not find the list of regulars.\n")
-				client.Say(channelName, "There are no regulars.")
+				client.Say(channelName, fmt.Sprintf("Cannot delete %s from the regulars list!", name))
 			} else {
-				regulars := string(regularsBytes)
-				indexOfRemove := strings.Index(regulars, removeFromList)
-				if indexOfRemove == -1 {
-					client.Say(channelName, fmt.Sprintf("User %s\n is not a regular.", name))
-				} else {
-					fmt.Printf("String: %s\nIndex of remove: %d\n", regulars, indexOfRemove)
-					client.Say(channelName, regulars[:indexOfRemove]+regulars[indexOfRemove+len(removeFromList):])
-				}
+				client.Say(channelName, fmt.Sprintf("%s has been sucessfully deleted from the regulars list!", name))
 			}
-
 		} else {
 			client.Say(channelName, "Invalid command.")
 		}
 	}
 }
 
-// Reads the regulars list and searches for the username, returns true if the user exists
-func checkRegularsList(username string) bool {
-	regularsBytes, err := ioutil.ReadFile("/opt/qoqbot/regulars.txt")
-	if err != nil {
-		fmt.Printf("Could not find the list of regulars.\n")
-		return false
+// Checks to see if a user is a regular
+func checkRegularsList(username string, isExempt bool) bool {
+	if isExempt {
+		return isExempt
 	}
-	return strings.Contains(string(regularsBytes), username)
+	var regular Regulars
+	return !db.Where("username = ?", username).First(&regular).RecordNotFound()
 }
