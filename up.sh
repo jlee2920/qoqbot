@@ -1,4 +1,4 @@
 #!/bin/bash
 
 docker-compose up -d db
-docker-compose run -d qoqbot ./qoqbot
+docker-compose up -d qoqbot
