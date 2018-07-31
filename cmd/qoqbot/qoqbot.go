@@ -8,12 +8,6 @@ import (
 	"github.com/jlee2920/qoqbot.git/config"
 
 	"github.com/jinzhu/gorm"
-	// _ "github.com/jinzhu/gorm/dialects/mssql"
-	// _ "github.com/jinzhu/gorm/dialects/mysql"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
-	// _ "github.com/jinzhu/gorm/dialects/sqlite"
-
-	_ "github.com/lib/pq"
 )
 
 var db *gorm.DB
@@ -22,10 +16,11 @@ func main() {
 	// initialize the environment variables
 	config.InitEnv()
 	// Initialize the database
-	initDB(config.Config)
+	initDB()
 	defer db.Close()
-	// Initiate twitch IRL client
-	startTwitchIRC(config.Config)
+	// Initiate discord/twitch IRC clients
+	startDiscordIRC()
+	startTwitchIRC()
 }
 
 // Regulars is the struct used for keeping track of who is a regular and how many songs they have done
@@ -36,11 +31,11 @@ type Regulars struct {
 }
 
 // initDB initializes the database with the use of gorm
-func initDB(qoqbot config.Conf) {
+func initDB() {
 	// Instantiate the db struct and allow db access
 	var err error
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
-		qoqbot.DBHost, qoqbot.DBPort, qoqbot.DBUser, qoqbot.DBName, qoqbot.DBPassword)
+		config.Config.DBHost, config.Config.DBPort, config.Config.DBUser, config.Config.DBName, config.Config.DBPassword)
 
 	fmt.Println(psqlInfo)
 	db, err = gorm.Open("postgres", psqlInfo)

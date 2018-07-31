@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jlee2920/qoqbot.git/config"
-
 	// _ "github.com/jinzhu/gorm/dialects/mssql"
 	// _ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/jlee2920/qoqbot.git/config"
 	// _ "github.com/jinzhu/gorm/dialects/sqlite"
 
 	"github.com/gempir/go-twitch-irc"
@@ -16,12 +15,12 @@ import (
 )
 
 // Starts a new Twitch IRC client that listens for messages sent
-func startTwitchIRC(qoqbot config.Conf) {
+func startTwitchIRC() {
 	fmt.Print("Starting server!\n")
 	// Instantiate a new client
-	client := twitch.NewClient(qoqbot.BotName, qoqbot.BotOAuth)
+	client := twitch.NewClient(config.Config.BotName, config.Config.BotOAuth)
 	// Join the client to the twitch channel
-	client.Join(qoqbot.ChannelName)
+	client.Join(config.Config.ChannelName)
 
 	// Waits over IRC for a message to be posted to twitch then processed here
 	client.OnNewMessage(func(channel string, user twitch.User, message twitch.Message) {
@@ -41,19 +40,19 @@ func startTwitchIRC(qoqbot config.Conf) {
 
 			switch command {
 			case "regulars":
-				regularsCommand(client, firstSpace, qoqbot.ChannelName, message.Text)
-				postToDiscord(qoqbot.DiscordURL, qoqbot.DiscordToken, "Made a regulars command")
+				regularsCommand(client, firstSpace, config.Config.ChannelName, message.Text)
+				postToDiscord("Made a regulars command")
 				break
 			case "play":
 				isRegular := checkRegularsList(user.Username, isExempt)
 				if isRegular {
-					postToDiscord(qoqbot.DiscordURL, qoqbot.DiscordToken, message.Text)
+					postToDiscord(message.Text)
 				} else {
-					client.Say(qoqbot.ChannelName, "You must be a regular request a song.\n")
+					client.Say(config.Config.ChannelName, "You must be a regular request a song.\n")
 				}
 				break
 			default:
-				postToDiscord(qoqbot.DiscordURL, qoqbot.DiscordToken, message.Text)
+				postToDiscord(message.Text)
 			}
 		}
 	})
