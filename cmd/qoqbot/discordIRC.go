@@ -16,23 +16,25 @@ func startDiscordIRC() {
 	discord, _ := discordgo.New("Bot " + config.Config.DiscordToken)
 
 	discord.AddHandler(listenForMessage)
-	discord.AddHandler(func(discord *discordgo.Session, ready *discordgo.Ready) {
-		_ = discord.UpdateStatus(0, "Qoqbot at your service!")
-		servers := discord.State.Guilds
-		fmt.Printf("Qoqbot has started on %d servers", len(servers))
-	})
+	discord.AddHandler(readyForMessages)
 
 	_ = discord.Open()
 	defer discord.Close()
 
 }
 
+func readyForMessages(discord *discordgo.Session, ready *discordgo.Ready) {
+	_ = discord.UpdateStatus(0, "Qoqbot at your service!")
+	servers := discord.State.Guilds
+	fmt.Printf("Qoqbot has started on %d servers", len(servers))
+}
+
 func listenForMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
-	// The id of rythm bot is Rythm#3722
-	if message.Author.ID == "462018671720660993" {
+	// Make sure to skip the id of qoqbot
+	if message.Author.ID == config.Config.DiscordBotID {
 		return
 	}
-	postToDiscord(fmt.Sprintf("Message sent: %s", message.Message.Content))
+	postToDiscord(fmt.Sprintf("Message sent by %s: %s", message.Author.Username, message.Message.Content))
 }
 
 // Takes the discordURL for where to POST and the discordToken of qoqbot to echo message
