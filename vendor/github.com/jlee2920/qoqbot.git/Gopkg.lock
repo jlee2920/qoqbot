@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/bwmarrin/discordgo"
+  packages = ["."]
+  revision = "4a33b9bc7c56cfdb9bb244e33e83cb3941fe2bdc"
+  version = "v0.18.0"
+
+[[projects]]
   name = "github.com/caarlos0/env"
   packages = ["."]
   revision = "1cddc31c48c56ecd700d873edb9fd5b6f5df922a"
@@ -12,6 +18,12 @@
   packages = ["."]
   revision = "59099d707fceaf5977fb5532f259a8eb6f36bec7"
   version = "0.17"
+
+[[projects]]
+  name = "github.com/gorilla/websocket"
+  packages = ["."]
+  revision = "ea4d1f681babbce9545c9c5f3d5194a789c89f5b"
+  version = "v1.2.0"
 
 [[projects]]
   name = "github.com/jinzhu/gorm"
@@ -32,7 +44,7 @@
   branch = "master"
   name = "github.com/jlee2920/qoqbot.git"
   packages = ["config"]
-  revision = "82115f7b87831f88e0e809ebd1fdc51e50f31a88"
+  revision = "f5a24d51aeb2f973d7fb1b9b650f8fc1eaf18ed2"
 
 [[projects]]
   branch = "master"
@@ -44,9 +56,20 @@
   ]
   revision = "90697d60dd844d5ef6ff15135d0203f65d2f53b8"
 
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = [
+    "internal/subtle",
+    "nacl/secretbox",
+    "poly1305",
+    "salsa20/salsa"
+  ]
+  revision = "c126467f60eb25f8f27e5a981f32a87e3965053f"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6425a0d2f22ce9a9353fd4e8f7e14b94e3bca03382997f3e6e817a1c3e3d06c2"
+  inputs-digest = "5d2c5fea7f244a27b7683cb1b897869012e0d1dc0d5acebb7e97331fe665045f"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -44,7 +44,7 @@
   branch = "master"
   name = "github.com/jlee2920/qoqbot.git"
   packages = ["config"]
-  revision = "f5a24d51aeb2f973d7fb1b9b650f8fc1eaf18ed2"
+  revision = "805547fbf20b6588f686088f5af060217cdfa8d6"
 
 [[projects]]
   branch = "master"
