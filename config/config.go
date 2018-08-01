@@ -7,10 +7,10 @@ import (
 // Conf holds the environment configurations taken from docker-compose.yml
 type Conf struct {
 	// Discord Information
-	DiscordToken    string `env:"DISCORD_TOKEN"`
-	DiscordURL      string `env:"DISCORD_URL"`
-	DiscordBotID    string `env:"DISCORD_BOT_ID"`
-	DiscordServerID string `env:"DISCORD_SERVER_ID"`
+	DiscordToken     string `env:"DISCORD_TOKEN"`
+	DiscordURL       string `env:"DISCORD_URL"`
+	DiscordBotID     string `env:"DISCORD_BOT_ID"`
+	DiscordChannelID string `env:"DISCORD_CHANNEL_ID"`
 
 	// Twitch Bot Information
 	BotName     string `env:"BOT_NAME"`
