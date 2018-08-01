@@ -9,6 +9,7 @@ type Conf struct {
 	// Discord Information
 	DiscordToken string `env:"DISCORD_TOKEN"`
 	DiscordURL   string `env:"DISCORD_URL"`
+	DiscordBotID string `env:"DISCORD_BOT_ID"`
 
 	// Twitch Bot Information
 	BotName     string `env:"BOT_NAME"`

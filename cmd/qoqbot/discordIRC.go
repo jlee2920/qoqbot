@@ -25,16 +25,15 @@ func startDiscordIRC() {
 
 func readyForMessages(discord *discordgo.Session, ready *discordgo.Ready) {
 	_ = discord.UpdateStatus(0, "Qoqbot at your service!")
-	servers := discord.State.Guilds
-	fmt.Printf("Qoqbot has started on %d servers", len(servers))
+
+	fmt.Printf("Qoqbot has started on %+v servers", discord.State.Guilds)
 }
 
 func listenForMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
-	// Make sure to skip the id of qoqbot
-	if message.Author.ID == config.Config.DiscordBotID {
-		return
+	// Make sure to skip everyone that is not qoqbot
+	if message.Author.ID != config.Config.DiscordBotID && message.ChannelID == config.Config.DiscordServerID {
+		postToDiscord(fmt.Sprintf("Message: %+v", message.Message))
 	}
-	postToDiscord(fmt.Sprintf("Message sent by %s: %s", message.Author.Username, message.Message.Content))
 }
 
 // Takes the discordURL for where to POST and the discordToken of qoqbot to echo message
