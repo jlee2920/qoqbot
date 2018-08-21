@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	// _ "github.com/jinzhu/gorm/dialects/mssql"
 	// _ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/jlee2920/qoqbot.git/config"
+	youtube "google.golang.org/api/youtube/v3"
 	// _ "github.com/jinzhu/gorm/dialects/sqlite"
 
 	"github.com/gempir/go-twitch-irc"
@@ -15,7 +17,7 @@ import (
 )
 
 // Starts a new Twitch IRC client that listens for messages sent
-func startTwitchIRC() {
+func startTwitchIRC(service *youtube.Service) {
 	fmt.Print("Starting server!\n")
 	// Instantiate a new client
 	client := twitch.NewClient(config.Config.BotName, config.Config.BotOAuth)
@@ -39,17 +41,12 @@ func startTwitchIRC() {
 			command := message.Text[1:firstSpace]
 
 			switch command {
-			case "regulars":
+			case "reg":
 				regularsCommand(client, firstSpace, config.Config.ChannelName, message.Text)
 				postToDiscord("Made a regulars command")
 				break
-			case "play":
-				isRegular := checkRegularsList(user.Username, isExempt)
-				if isRegular {
-					postToDiscord(message.Text)
-				} else {
-					client.Say(config.Config.ChannelName, "You must be a regular request a song.\n")
-				}
+			case "songs":
+				songsCommand(client, firstSpace, config.Config.ChannelName, message.Text, user.Username, service, isExempt)
 				break
 			default:
 				postToDiscord(message.Text)
@@ -63,7 +60,74 @@ func startTwitchIRC() {
 	}
 }
 
-// regularsCommand is run when the command from twitch begins with !regulars ...
+// songsCommand is run when the command from twithc begins with !songs ...
+func songsCommand(client *twitch.Client, firstSpace int, channelName, message, username string, service *youtube.Service, isExempt bool) {
+	secondSpace := strings.Index(message[firstSpace+1:], " ")
+	if secondSpace == -1 {
+		if strings.Contains(message[firstSpace+1:], "list") {
+			queue := currentQueue()
+			if len(queue) == 0 {
+				client.Say(channelName, "The queue is empty!")
+			} else {
+				listOfSongs := ""
+				for index, song := range queue {
+					listOfSongs = listOfSongs + fmt.Sprintf("%d. %s by: @%s ", index+1, song.Name, song.Who)
+				}
+				client.Say(channelName, listOfSongs)
+			}
+		} else if strings.Contains(message[firstSpace+1:], "skip") {
+			if isExempt {
+				commandToDiscord, messageToTwitch := skipFirstSong()
+				if commandToDiscord != "" {
+					postToDiscord(commandToDiscord)
+				}
+				client.Say(channelName, messageToTwitch)
+			} else {
+				// Do nothing
+			}
+		} else if strings.Contains(message[firstSpace+1:], "current") {
+			queue := currentQueue()
+			currentSong := fmt.Sprintf("Current song: %s by: @%s", queue[0].Name, queue[0].Who)
+			client.Say(channelName, currentSong)
+		}
+	} else {
+		subCommand := message[firstSpace+1 : firstSpace+1+secondSpace]
+		// First two cases, we expect another argument to the command, otherwise it is invalid
+		if subCommand == "add" {
+			// We must now find the name and write him to the list of regulars
+			name := strings.Trim(message[firstSpace+1+secondSpace:], " ")
+			fmt.Printf("Adding song: %s\n", name)
+
+			commandToDiscord, messageToTwitch := processesSongRequest(name, username, service)
+			if commandToDiscord != "" {
+				postToDiscord(commandToDiscord)
+			}
+			client.Say(channelName, messageToTwitch)
+		} else if subCommand == "delete" {
+			if isExempt {
+				songNumber := strings.Trim(message[firstSpace+1+secondSpace:], " ")
+				fmt.Printf("Removing song number: %s\n", songNumber)
+
+				num, err := strconv.Atoi(songNumber)
+				if err != nil {
+					client.Say(channelName, "Invalid queue number!")
+				} else {
+					commandToDiscord, messageToTwitch := deleteSongRequest(num)
+					if commandToDiscord != "" {
+						postToDiscord(commandToDiscord)
+					}
+					client.Say(channelName, messageToTwitch)
+				}
+			} else {
+				// Do nothing, this is a mod/broadcaster only command
+			}
+		} else {
+			client.Say(channelName, "Invalid command.")
+		}
+	}
+}
+
+// regularsCommand is run when the command from twitch begins with !reg ...
 func regularsCommand(client *twitch.Client, firstSpace int, channelName, message string) {
 	secondSpace := strings.Index(message[firstSpace+1:], " ")
 	// If secondSpace is -1, we will take the remaining string of the message and see if it's list.

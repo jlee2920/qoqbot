@@ -53,6 +53,7 @@ type Client struct {
 	onNewRoomstateMessage  func(channel string, user User, message Message)
 	onNewClearchatMessage  func(channel string, user User, message Message)
 	onNewUsernoticeMessage func(channel string, user User, message Message)
+	onNewUserstateMessage  func(channel string, user User, message Message)
 }
 
 // NewClient to create a new client
@@ -96,6 +97,11 @@ func (c *Client) OnNewUsernoticeMessage(callback func(channel string, user User,
 	c.onNewUsernoticeMessage = callback
 }
 
+// OnNewUserstateMessage attach callback to new userstate
+func (c *Client) OnNewUserstateMessage(callback func(channel string, user User, message Message)) {
+	c.onNewUserstateMessage = callback
+}
+
 // Say write something in a chat
 func (c *Client) Say(channel, text string) {
 	c.send(fmt.Sprintf("PRIVMSG #%s :%s", channel, text))
@@ -111,6 +117,8 @@ func (c *Client) Whisper(username, text string) {
 
 // Join enter a twitch channel to read more messages
 func (c *Client) Join(channel string) {
+	channel = strings.ToLower(channel)
+
 	// If we don't have the channel in our map AND we have an
 	// active connection, explicitly join before we add it to our map
 	c.channelsMtx.Lock()
@@ -268,6 +276,10 @@ func (c *Client) handleLine(line string) {
 		case USERNOTICE:
 			if c.onNewUsernoticeMessage != nil {
 				c.onNewUsernoticeMessage(Channel, *User, *clientMessage)
+			}
+		case USERSTATE:
+			if c.onNewUserstateMessage != nil {
+				c.onNewUserstateMessage(Channel, *User, *clientMessage)
 			}
 		}
 	}

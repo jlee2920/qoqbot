@@ -50,6 +50,7 @@ services:
     - DB_HOST
     - DB_PORT
     - DB_NAME
+    - YOUTUBE_API_KEY
     image: 046294321880.dkr.ecr.us-east-1.amazonaws.com/qoqbot:latest
     command: ["./waitForPG.sh", "localhost", "./qoqbot"]
     volumes:

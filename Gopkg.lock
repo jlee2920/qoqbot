@@ -16,8 +16,8 @@
 [[projects]]
   name = "github.com/gempir/go-twitch-irc"
   packages = ["."]
-  revision = "59099d707fceaf5977fb5532f259a8eb6f36bec7"
-  version = "0.17"
+  revision = "0c76534297c24260b516155915087872741b8b06"
+  version = "0.19"
 
 [[projects]]
   name = "github.com/gorilla/websocket"
@@ -44,7 +44,7 @@
   branch = "master"
   name = "github.com/jlee2920/qoqbot.git"
   packages = ["config"]
-  revision = "84f27740157f49e0bbfda0ba5b4c93b52e90697a"
+  revision = "7cfb23bfa9cf8db8070c3b597c3b30eb7f14c219"
 
 [[projects]]
   branch = "master"
@@ -65,11 +65,38 @@
     "poly1305",
     "salsa20/salsa"
   ]
-  revision = "c126467f60eb25f8f27e5a981f32a87e3965053f"
+  revision = "aabede6cba87e37f413b3e60ebfc214f8eeca1b0"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/net"
+  packages = [
+    "context",
+    "context/ctxhttp"
+  ]
+  revision = "aaf60122140d3fcf75376d319f0554393160eb50"
+
+[[projects]]
+  branch = "master"
+  name = "google.golang.org/api"
+  packages = [
+    "gensupport",
+    "googleapi",
+    "googleapi/internal/uritemplates",
+    "googleapi/transport",
+    "youtube/v3"
+  ]
+  revision = "e21acd801f91da814261b938941d193bb036441a"
+
+[[projects]]
+  name = "gopkg.in/eapache/queue.v1"
+  packages = ["."]
+  revision = "44cc805cf13205b55f69e14bcb69867d1ae92f98"
+  version = "v1.1.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5d2c5fea7f244a27b7683cb1b897869012e0d1dc0d5acebb7e97331fe665045f"
+  inputs-digest = "79ebd9dcb0b1e17cb0da2ab1e73d3d91bc73943cd12303dd1d52881848f01aae"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -1,0 +1,61 @@
+package main
+
+import (
+	"flag"
+	"fmt"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"google.golang.org/api/googleapi/transport"
+	"google.golang.org/api/youtube/v3"
+)
+
+const developerKey = "AIzaSyAqlcaIFisxYw3Be2H4IIZpDDtf7hV0dVM"
+
+func main() {
+	flag.Parse()
+
+	client := &http.Client{
+		Transport: &transport.APIKey{Key: developerKey},
+	}
+
+	service, err := youtube.New(client)
+	if err != nil {
+		log.Fatalf("Error creating new YouTube client: %v", err)
+	}
+
+	// Make the API call to YouTube.
+	call := service.Videos.List("contentDetails, snippet")
+	call = call.Id("1BdPDaFXcEo")
+
+	response, err := call.Do()
+	// Time Structure: PT15M51S
+
+	fmt.Printf("%s\n", response.Items[0].Snippet.Title)
+
+	durationString := response.Items[0].ContentDetails.Duration
+	minuteLocation := strings.Index(durationString, "M")
+	secondLocation := strings.Index(durationString, "S")
+
+	minutes, _ := strconv.Atoi(durationString[2:minuteLocation])
+	seconds, _ := strconv.Atoi(durationString[minuteLocation+1 : secondLocation])
+
+	totalSeconds := time.Duration((60*minutes)+seconds) * time.Second
+	// newTime := time.Now().Add(totalSeconds)
+
+	now := time.Now()
+	then := time.Now().Add(totalSeconds)
+	diff := now.Sub(then)
+
+	fmt.Printf("Current time: %q", diff)
+
+}
+
+func printVideosListResults(response *youtube.VideoListResponse) {
+	for _, item := range response.Items {
+		fmt.Println(item.Id, ": ", item.ContentDetails.Duration)
+	}
+}

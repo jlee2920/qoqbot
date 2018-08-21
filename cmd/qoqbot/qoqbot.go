@@ -3,9 +3,13 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
+	"net/http"
 	"strings"
 
 	"github.com/jlee2920/qoqbot.git/config"
+	"google.golang.org/api/googleapi/transport"
+	youtube "google.golang.org/api/youtube/v3"
 
 	"github.com/jinzhu/gorm"
 )
@@ -18,9 +22,20 @@ func main() {
 	// Initialize the database
 	initDB()
 	defer db.Close()
+
+	// Init the YouTube Client
+	client := &http.Client{
+		Transport: &transport.APIKey{Key: config.Config.YouTubeAPIKey},
+	}
+
+	service, err := youtube.New(client)
+	if err != nil {
+		log.Fatalf("Error creating new YouTube client: %v", err)
+	}
+
 	// Initiate discord/twitch IRC clients
 	startDiscordIRC()
-	startTwitchIRC()
+	startTwitchIRC(service)
 }
 
 // Regulars is the struct used for keeping track of who is a regular and how many songs they have done

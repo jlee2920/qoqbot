@@ -23,6 +23,8 @@ type Conf struct {
 	DBHost     string `env:"DB_HOST"`
 	DBPort     int    `env:"DB_PORT"`
 	DBName     string `env:"DB_NAME"`
+
+	YouTubeAPIKey string `env:"YOUTUBE_API_KEY"`
 }
 
 // Config is a global configuration that is used within qoqbot

@@ -15,8 +15,8 @@ func startDiscordIRC() {
 
 	discord, _ := discordgo.New("Bot " + config.Config.DiscordToken)
 
-	discord.AddHandler(listenForMessage)
 	discord.AddHandler(readyForMessages)
+	discord.AddHandler(listenForMessage)
 
 	_ = discord.Open()
 	defer discord.Close()
@@ -25,14 +25,22 @@ func startDiscordIRC() {
 
 func readyForMessages(discord *discordgo.Session, ready *discordgo.Ready) {
 	_ = discord.UpdateStatus(0, "Qoqbot at your service!")
-
 	fmt.Printf("Qoqbot has started on %+v servers", discord.State.Guilds)
 }
 
 func listenForMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
-	// Make sure to skip everyone that is not qoqbot
-	if message.Author.ID != config.Config.DiscordBotID && message.ChannelID == config.Config.DiscordServerID {
-		postToDiscord(fmt.Sprintf("Message: %+v", message.Message))
+
+	// If we get a message from the music bot, we expect to find the song duration if it's added to the queue (doesn't work with first song)
+	if message.Author.ID == config.Config.DiscordBotID && message.ChannelID == config.Config.DiscordChannelID {
+		// postToDiscord(fmt.Sprintf("Message: %+v", message.Message))
+		for _, embeded := range message.Message.Embeds {
+			postToDiscord(fmt.Sprintf("Embeded: %+v", embeded))
+			for _, field := range embeded.Fields {
+				if field.Name == "Song Duration" {
+					postToDiscord(fmt.Sprintf("Song Duration: %s", field.Value))
+				}
+			}
+		}
 	}
 }
 

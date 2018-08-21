@@ -41,7 +41,7 @@ services:
     - DISCORD_TOKEN
     - DISCORD_URL
     - DISCORD_BOT_ID
-    - DISCORD_SERVER_ID
+    - DISCORD_CHANNEL_ID
     - BOT_NAME
     - BOT_OAUTH
     - CHANNEL_NAME
